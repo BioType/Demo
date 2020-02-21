@@ -3,14 +3,17 @@
 <head>
 	<title>Demo Website</title>
 	<link rel="stylesheet" href="css/dummycss.css">
-	<script src="js/dummyjs.js"> </script>
+	<script src="https://code.jquery.com/jquery-3.4.1.js" integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=" crossorigin="anonymous"></script>
+	<script src="js/dummyjs.js" type="text/javascript"></script>
+	<script src="https://api.typingdna.com/scripts/typingdna.js" type="text/javascript"></script>
 </head>
 <body>
 	<div>
 		<h1>Small Input Test:</h1>
 	</div>
 	<div>
-		<input id="input" type="text" name="inputText" placeholder="Input your text here:">
+		<input id="email" label="Email: " type="email" name="inputEmail" placeholder="Email goes here">
+		<input id="password" label="Password: " type="password" name="inputPassword">
 		<input id="submit" type="submit" name="submitButton" value="Submit" onclick="alertUserInput()">
 	</div>
 </body>
