@@ -1,28 +1,23 @@
 {
-  "name": "typingdnaclientbiotype",
-  "version": "1.0.5",
-  "description": "Basic nodeJs implementation for the TypingDNA.com Auth API",
-  "main": "typingdnaclient.js",
+  "name": "demo-v2.0",
+  "version": "2.0.0",
+  "description": "typingdna client",
+  "main": "upgradedServer.js",
+  "dependencies": {
+    "querystring": "^0.2.0",
+    "browserify": "^16.5.1"
+  },
+  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TypingDNA/TypingDnaClient-NodeJs.git"
+    "url": "\"git+ssh://git@github.com/i-olivaressm/Demo-v2.0.git\""
   },
   "keywords": [
-    "typingDna",
-    "typingDna API",
-    "typingDna API client"
+    "demo"
   ],
-  "author": "Stefan Endres",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/TypingDNA/TypingDnaClient-NodeJs/issues"
-  },
-  "homepage": "https://github.com/TypingDNA/TypingDnaClient-NodeJs#readme",
-  "dependencies": {
-    "require": "^2.4.20",
-    "typingdnaclient": "^1.0.5"
-  }
+  "author": "iolivares",
+  "license": "ISC"
 }

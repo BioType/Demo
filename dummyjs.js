@@ -1,25 +1,31 @@
-import {typingDnaClient} from 'typingdnaclient.js';
+//import {typingDnaClient} from 'typingdnaclient.js';
+var TypingDnaClient = require('./typingdnaclient');
+var TypingDNA = require('./typingdna');
+
+
 
 var tdna;
-var typingDnaClient = new TypingDnaClient('cb83500f32d54ac7eb7e53fef86c7992', '13c4ae3564ebe3963ed35ba815ac0896');
+var typingDnaClient = new TypingDnaClient('c87e1d0300aa010574347254b0189f5a', '52873510602e7b608bba3e2d0af696a3','api.typingdna.com');
 var typingPatternMail;
 
 $(document).ready(function(){
 	tdna = new TypingDNA();
-	TypingDNA.addTarget("email");
-	TypingDNA.addTarget("password");
+	tdna.addTarget("email");
+	tdna.addTarget("password");
 });
 
-function alertUserInput(){
-	typingPatternMail = tdna.getTypingPattern({type: 2});
-	makeRequest();
-	console.log(typingPattern);
-	alert(typingPattern);
+window.alertUserInput = function(){
+  typingPatternMail = tdna.getTypingPattern({type: 2, targetId: "email"});
+  typingPatternPassword = tdna.getTypingPattern({type: 2, targetId: "password"});
+	//makeRequest();
+	document.getElementById('emailpattern').value = typingPatternMail;
+	document.getElementById('passwordpattern').value = typingPatternPassword;
 }
+
 
 function makeRequest(){
 	typingDnaClient.check(
-    { userId : typingPatternMail,
+    { userId : '{testuser}',
       type: '2',
       device: 'desktop'
     },
