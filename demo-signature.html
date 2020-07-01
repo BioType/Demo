@@ -1,0 +1,147 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://github.com/devongovett/blob-stream/releases/download/v0.1.3/blob-stream.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.0.943/build/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.0.943/web/pdf_viewer.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.2.2/pdf.min.js"></script>
+    <script src="https://unpkg.com/node-forge@0.7.0/dist/forge.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib"></script>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <script src="certificate-Ca.js"></script>
+    <script src="signer-bundle.js"></script>
+    <script src="aux-functions.js"></script>
+    <script src="pdfviewer.js"></script>
+    <link rel="stylesheet" href="css.css">
+  </head>
+
+  <body>
+
+<div class="parent">
+  <h1>e-signature module</h1>
+  <div class="left">
+      <div class="row">
+          <div class="col-md-12">
+              <h2>Signature:</h2>
+              <p>Upload the document you want to sign</p>
+          </div>
+      </div>
+      <div class="row">
+        <div class="col-md-12">
+          <input id="sign" type="file" onchange="initPDFRenderer()" />
+          <p><strong id="show-sign-error"></strong></p>
+        </div>
+      </div>
+      <br/>
+      <div class="row">
+          <div class="col-md-12">
+              <p>Enter your first name and family name</p>
+              <p><strong id="show-name-error"></strong></p>
+          </div>
+      </div>
+      <div class="row">
+          <div class="col-md-12">
+            <input id="usrname" label="Name: " type="username" name="username" placeholder="first name">
+            <input id="family" label="family: " type="family" name="family" placeholder="family name">
+            <button class="btn btn-primary" id="submit" onclick="signDocument()">Sign document</button>
+          </div>
+      </div>
+      <div>
+        <a  id="downloadSignedPdf"> signed document </a>
+        <a  id="downloadCert">.p12 certificate </a>
+      </div>
+
+      <br/>
+      <div class="row">
+          <div class="col-md-12">
+              <textarea id="privateKey" class="form-control" rows="3">This is the private key e-signature</textarea>
+          </div>
+      </div>
+      <div class="row">
+          <div class="col-md-12">
+              <textarea id="publicKey" class="form-control" rows="3">This is the public key e-signature</textarea>
+          </div>
+      </div>
+    </div>
+<div id="right-side" class="right">
+
+  <br/>
+  <p> Optional: upload an image with your signature, otherwise a standard signature will be used </p>
+  <div>
+  <input id="image" type="file" onchange="" />
+  </div>
+  <br/>
+  <p> Click on the pdf where you want your signature to be placed </p>
+        <div class="container">
+                <button id="prev_page">Previous</button>
+                <button id="next_page">Next</button>
+                <span id="current_page_num"></span>
+                    of
+                <span id="total_page_num"></span>
+
+        </div>
+        <div id="canvas">
+        <canvas id="pdf_canvas" width="600"></canvas>
+        </div>
+</div>
+
+
+  <script>
+    const { degrees, PDFDocument, StandardFonts, rgb } = PDFLib
+
+
+    function signDocument(){
+      var name = document.getElementById("usrname").value;
+      var family = document.getElementById("family").value;
+      if (name == "" || family == ""){
+        document.querySelector('#show-name-error').innerHTML = 'Please, introduce your complete name to sign the document';
+      }else{
+        document.querySelector('#show-name-error').innerHTML = '';
+        const TYPE_PDF = 'application/pdf'
+        var toSign = document.getElementById('sign').files;
+        if(toSign.length > 0 && toSign[0].type == TYPE_PDF){
+          document.querySelector('#show-sign-error').innerHTML = ''
+          readDocument()
+        }else{
+          document.querySelector('#show-sign-error').innerHTML = 'Please, upload a valid pdf to sign'
+        }
+      }
+    }
+
+
+    function readDocument() {
+
+        var fileReader = new FileReader();
+        var file = document.getElementById('sign').files[0];
+
+        fileReader.onload = async function(fileLoadedEvent) {
+          var contents = fileReader.result;
+
+          var imageReader = new FileReader();
+          var inputFiles = document.getElementById('image').files;
+
+          if(inputFiles.length > 0){
+
+            var inputSignature = document.getElementById('image').files[0];
+            imageReader.onload = async function(event){
+
+              imageArrayBuffer = imageReader.result;
+              createCertificate(contents,imageArrayBuffer)
+            }
+            imageReader.readAsArrayBuffer(inputSignature);
+
+          }else{
+
+            const urlSign = 'https://cram.org/wp-content/uploads/2017/01/firma-certificado-donacion-cram.jpg';
+            const imageArrayBuffer = await fetch(urlSign).then((res) => res.arrayBuffer());
+            createCertificate(contents,imageArrayBuffer)
+
+          }
+        }
+        fileReader.readAsArrayBuffer(file)
+    }
+
+  </script>
+</body>
+</html>
