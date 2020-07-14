@@ -8,17 +8,7 @@
     let _scale = 1;
 
     // events
-    /*
-    window.addEventListener('load', function () {
-        isPageRendering= false;
-        pageRenderingQueue = null;
-        canvas = document.getElementById('pdf_canvas');
-        canvasContext = canvas.getContext('2d');
 
-        initEvents();
-        initPDFRenderer();
-    });
-    */
 
     function initEvents() {
         let prevPageBtn = document.getElementById('prev_page');
@@ -31,15 +21,10 @@
 
     // init when window is loaded
     function initPDFRenderer() {
-      document.getElementById('downloadSignedPdf').disabled=true;
-      document.getElementById('downloadSignedPdf').removeAttribute('href');
-      document.getElementById('downloadSignedPdf').style.textDecoration = 'none';
-      document.getElementById('downloadCert').disabled=true;
-      document.getElementById('downloadCert').removeAttribute('href');
-      document.getElementById('downloadCert').style.textDecoration = 'none';
-
-      document.getElementById("privateKey").value = ''
-      document.getElementById("publicKey").value = ''
+      //var modalButton = document.getElementById("myModal-button");
+      //modalButton.style.display = "none";
+      //document.getElementById('downloadSignedPdf').style.display="none";
+      document.getElementById('loader').style.display="none";
 
       isPageRendering= false;
       pageRenderingQueue = null;
@@ -66,12 +51,35 @@
       fileReader.readAsArrayBuffer(pdfDoc);
     }
 
+    function reRender(contents){
+      document.getElementById('loader').style.display="none";
+      _PDFCONTENTS = contents;
+      isPageRendering= false;
+      pageRenderingQueue = null;
+      canvas = document.getElementById('pdf_canvas');
+      canvasContext = canvas.getContext('2d');
+      currentPageNum = 1
+      initEvents();
+      pdfjsLib.getDocument(contents).promise.then(pdfData => {
+          totalPages = pdfData.numPages;
+          let pagesCounter= document.getElementById('total_page_num');
+          pagesCounter.textContent = totalPages;
+
+          // assigning read pdfContent to global variable
+          pdf = pdfData;
+          //console.log(pdfData);
+          renderPage(currentPageNum);
+      });
+    }
+
+
+
     function renderPage(pageNumToRender = 1, scale = 1) {
         isPageRendering = true;
         document.getElementById('current_page_num').textContent = pageNumToRender;
         pdf.getPage(pageNumToRender).then(page => {
             // original width of the pdf page at scale 1
-            var pdf_original_width = page.getViewport(1).width;
+            var pdf_original_width = page.getViewport({scale:1}).width;
             _scale = canvas.width / pdf_original_width;
             const viewport = page.getViewport({scale:_scale});
             canvas.height = viewport.height;
@@ -129,12 +137,26 @@
     return [x,y, _scale,currentPageNum]
   }
   window.onload =  function(){
+          var modal = document.getElementById("myModal");
+          //var modalButton = document.getElementById("myModal-button");
+          document.getElementById("myModal-loader").style.display = "none";
+
+          //modalButton.style.display = "block";
+
+          var span = document.getElementsByClassName("close")[0];
+          span.onclick = function() {
+            modal.style.display = "none";
+          }
+
           let pdfContainer = document.getElementById('canvas')
 
           pdfViewer = new pdfjsViewer.PDFViewer({
                   container : pdfContainer
           })
+
           pdfContainer.addEventListener('click', (evt) => {
+                  //console.log("Estoy en pdfContainer.addEventListener('click')")
+                  modal.style.display = "block";
 
                   var pg = document.getElementById('canvas')
                   var rect = pg.getBoundingClientRect()
@@ -146,6 +168,9 @@
                   coordinates[0]=x
                   coordinates[1]=y
                   updateCoordinates()
+
           })
+
+          manageTabs()
 
   }

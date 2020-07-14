@@ -1,146 +1,215 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Amatic+SC&family=Dancing+Script&family=Italianno&family=Kristi&family=Shadows+Into+Light&family=Tangerine&family=Yellowtail&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
     <script src="https://github.com/devongovett/blob-stream/releases/download/v0.1.3/blob-stream.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.0.943/build/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.0.943/web/pdf_viewer.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.2.2/pdf.min.js"></script>
     <script src="https://unpkg.com/node-forge@0.7.0/dist/forge.min.js"></script>
     <script src="https://unpkg.com/pdf-lib"></script>
     <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-    <script src="certificate-Ca.js"></script>
+    <script src="certificate.js"></script>
+    <script src="reader.js"></script>
+    <script src="pdf.worker.js"></script>
+    <script src="pdf.js"></script>
     <script src="signer-bundle.js"></script>
     <script src="aux-functions.js"></script>
     <script src="pdfviewer.js"></script>
+    <script src="app.js"></script>
     <link rel="stylesheet" href="css.css">
   </head>
 
   <body>
 
 <div class="parent">
-  <h1>e-signature module</h1>
-  <div class="left">
-      <div class="row">
-          <div class="col-md-12">
-              <h2>Signature:</h2>
-              <p>Upload the document you want to sign</p>
-          </div>
-      </div>
-      <div class="row">
-        <div class="col-md-12">
-          <input id="sign" type="file" onchange="initPDFRenderer()" />
-          <p><strong id="show-sign-error"></strong></p>
-        </div>
-      </div>
-      <br/>
-      <div class="row">
-          <div class="col-md-12">
-              <p>Enter your first name and family name</p>
-              <p><strong id="show-name-error"></strong></p>
-          </div>
-      </div>
-      <div class="row">
-          <div class="col-md-12">
-            <input id="usrname" label="Name: " type="username" name="username" placeholder="first name">
-            <input id="family" label="family: " type="family" name="family" placeholder="family name">
-            <button class="btn btn-primary" id="submit" onclick="signDocument()">Sign document</button>
-          </div>
-      </div>
-      <div>
-        <a  id="downloadSignedPdf"> signed document </a>
-        <a  id="downloadCert">.p12 certificate </a>
-      </div>
-
-      <br/>
-      <div class="row">
-          <div class="col-md-12">
-              <textarea id="privateKey" class="form-control" rows="3">This is the private key e-signature</textarea>
-          </div>
-      </div>
-      <div class="row">
-          <div class="col-md-12">
-              <textarea id="publicKey" class="form-control" rows="3">This is the public key e-signature</textarea>
-          </div>
+  <div class="top">
+    <div class="header-container">
+      <div class="header"><h1>BioSign</h1><h1>e-signature service</h1></div>
+      <div style="position:relative">
       </div>
     </div>
-<div id="right-side" class="right">
-
-  <br/>
-  <p> Optional: upload an image with your signature, otherwise a standard signature will be used </p>
-  <div>
-  <input id="image" type="file" onchange="" />
   </div>
-  <br/>
-  <p> Click on the pdf where you want your signature to be placed </p>
-        <div class="container">
-                <button id="prev_page">Previous</button>
-                <button id="next_page">Next</button>
-                <span id="current_page_num"></span>
-                    of
-                <span id="total_page_num"></span>
 
-        </div>
-        <div id="canvas">
-        <canvas id="pdf_canvas" width="600"></canvas>
-        </div>
+
+
+  <div class="left">
+    <div class="info" id="info" width="80%">
+      Upload a PDF and click on the viewer wherever you want your signature to be placed. You can sign as many times as you want.
+    </div>
+    <div >
+    <label for="sign" class="myButton2">
+      <i class="fa fa-cloud-upload"></i> UPLOAD PDF TO SIGN
+    </label>
+    <canvas class="canvas" id='pdf-image' width="400" height="100" style="display:none;"></canvas>
+    <canvas class="canvas" id='canvas-renderer' style="display:none;"></canvas>
+    <input class="input-pdf" id="sign" type="file" onchange="initPDFRenderer()" style="display: none;"/>
+    <div><a class="download-button" id="downloadSignedPdf" style="display:none;" download><span>Download</span><span>SIGNED PDF</span></a></div>
+
+
+  </div>
+
+
+    </div>
+<div id="right-side" class="right">
+  <div class="container">
+    <div class="pdf-buttons" id="pdf-buttons">
+      <button class="previous" id="prev_page">Previous</button>
+      <button class="next" id="next_page">Next</button>
+      <span id="current_page_num"></span>
+                  of
+      <span id="total_page_num"></span>
+    </div>
+      <div id="canvas" class="canvas">
+        <canvas id="pdf_canvas" width="800"></canvas>
+      </div>
+  </div>
+
 </div>
 
 
+
+<div id="myModal" class="modal" width = "800">
+
+  <div class="modal-dialog" width = "800">
+          <div class="modal-content" width = "800">
+              <div class="modal-header">
+                <h4 class="modal-title" id="myModalLabel">Choose your signature
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
+
+                  </button>
+                  </h4>
+
+              </div>
+              <div class="modal-body">
+                  <div role="tabpanel">
+                      <!-- Nav tabs -->
+                      <ul class="nav nav-tabs" role="tablist">
+
+                          <li role="presentation" class="active"><a href="#typeTab" aria-controls="typeTab" role="tab" data-toggle="tab" style="color: #37cc5f">Type</a>
+
+                          </li>
+                          <li role="presentation"><a href="#uploadTab" aria-controls="uploadTab" role="tab" data-toggle="tab" style="color: #37cc5f">Upload</a>
+
+                          </li>
+                          <li role="presentation"><a href="#drawTab" aria-controls="drawTab" role="tab" data-toggle="tab" style="color: #37cc5f" onclick="drawSignature()" >Draw</a>
+
+                          </li>
+                      </ul>
+                      <!-- Tab panes -->
+                      <div class="tab-content">
+
+                          <div role="tabpanel" class="tab-pane fade in active" id="typeTab">
+                            </br>
+                            Type your name and choose your styled signature:
+                            </br>
+
+                            <input id="usrname" onkeyup="readAndSetText()" type="text" placeholder=" Type your name here...">
+                            </br>
+
+                            <canvas class="textCanvas" id='textCanvas0'  height="20"></canvas>
+                            <canvas class="textCanvas" id='realCanvas0'  height="20"></canvas>
+                            <button class="button btn0" id="btn0" style="height:35px; width:130px"><img id='imageText0'></button>
+
+                            <canvas class="textCanvas" id='textCanvas1'  height="20"></canvas>
+                            <canvas class="textCanvas" id='realCanvas1'  height="20"></canvas>
+                            <button class="button btn0" id="btn1" style="height:35px; width:130px"><img id='imageText1'></button>
+
+                            <canvas class="textCanvas" id='textCanvas2'  height="20"></canvas>
+                            <canvas class="textCanvas" id='realCanvas2'  height="20"></canvas>
+                            <button class="button btn0" id="btn2" style="height:35px; width:130px"><img id='imageText2'></button>
+                            </br>
+
+                            <canvas class="textCanvas" id='textCanvas3'  height="20"></canvas>
+                            <canvas class="textCanvas" id='realCanvas3'  height="20"></canvas>
+                            <button class="button btn0" id="btn3" style="height:35px; width:130px"><img id='imageText3'></button>
+
+                            <canvas class="textCanvas" id='textCanvas4'  height="20"></canvas>
+                            <canvas class="textCanvas" id='realCanvas4'  height="20"></canvas>
+                            <button class="button btn0" id="btn4" style="height:35px; width:130px"><img id='imageText4'></button>
+
+                            <canvas class="textCanvas" id='textCanvas5'  height="20"></canvas>
+                            <canvas class="textCanvas" id='realCanvas5'  height="20"></canvas>
+                            <button class="button btn0" id="btn5" style="height:35px; width:130px"><img id='imageText5'></button>
+
+                            <div class="centered-buttons">
+                              <button class="primary" id="submitType"> Submit Signature </button>
+                            </div>
+                          </div>
+                          <div role="tabpanel" class="tab-pane fade" id="uploadTab">
+                            </br>
+                            Upload an image of your signature
+                            <br></br>
+                            <div>
+                            <input id="image" type="file" />
+                            </div>
+                            <div>
+                            valid formats are .png, .jpg or pdf
+                            </div>
+
+                            <p><strong id="show-image-error"></strong></p>
+                            <div class="centered-buttons">
+                              <button class="primary" id="submitUpload"> Submit Signature </button>
+                            </div>
+                          </div>
+                          <div role="tabpanel" class="tab-pane fade" id="drawTab">
+
+                            <div class="row">
+                                <div class="col-md-12">
+                                    </br>
+                                    Draw your signature below:
+                                    <br></br>
+                                    <canvas id="signature-canvas" width="400" height="100">
+                                    </canvas>
+                                    <br></br>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="centered-buttons">
+                                    <button class="clearButton" id="sig-clearBtn"> Clear Signature </button>
+                                    <button class="primary" id="submitDraw"> Submit Signature </button>
+                                </div>
+                                <br></br>
+                            </div>
+
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+          </div>
+      </div>
+</div>
+
+
+
+<div id="myModal-loader" class="modal-button" width = "400" >
+
+  <div class="modal-dialog-button" width = "400" >
+          <div class="modal-content-button" width = "400">
+              <div class="modal-body-button">
+                <div class="floating" style="float:left">
+
+                  <div class="loader" id="loader"></div>
+                  <br></br>
+                  <div id="loaderText"><div >Please, wait while signing the document...</div></div>
+
+                </div>
+
+              </div>
+          </div>
+      </div>
+</div>
+
+
+
+</div>
   <script>
+
     const { degrees, PDFDocument, StandardFonts, rgb } = PDFLib
-
-
-    function signDocument(){
-      var name = document.getElementById("usrname").value;
-      var family = document.getElementById("family").value;
-      if (name == "" || family == ""){
-        document.querySelector('#show-name-error').innerHTML = 'Please, introduce your complete name to sign the document';
-      }else{
-        document.querySelector('#show-name-error').innerHTML = '';
-        const TYPE_PDF = 'application/pdf'
-        var toSign = document.getElementById('sign').files;
-        if(toSign.length > 0 && toSign[0].type == TYPE_PDF){
-          document.querySelector('#show-sign-error').innerHTML = ''
-          readDocument()
-        }else{
-          document.querySelector('#show-sign-error').innerHTML = 'Please, upload a valid pdf to sign'
-        }
-      }
-    }
-
-
-    function readDocument() {
-
-        var fileReader = new FileReader();
-        var file = document.getElementById('sign').files[0];
-
-        fileReader.onload = async function(fileLoadedEvent) {
-          var contents = fileReader.result;
-
-          var imageReader = new FileReader();
-          var inputFiles = document.getElementById('image').files;
-
-          if(inputFiles.length > 0){
-
-            var inputSignature = document.getElementById('image').files[0];
-            imageReader.onload = async function(event){
-
-              imageArrayBuffer = imageReader.result;
-              createCertificate(contents,imageArrayBuffer)
-            }
-            imageReader.readAsArrayBuffer(inputSignature);
-
-          }else{
-
-            const urlSign = 'https://cram.org/wp-content/uploads/2017/01/firma-certificado-donacion-cram.jpg';
-            const imageArrayBuffer = await fetch(urlSign).then((res) => res.arrayBuffer());
-            createCertificate(contents,imageArrayBuffer)
-
-          }
-        }
-        fileReader.readAsArrayBuffer(file)
-    }
+    var _PDFCONTENTS = null
 
   </script>
 </body>

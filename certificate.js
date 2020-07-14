@@ -1,47 +1,73 @@
 
 function createCertificate(pdfArrayBuffer,imageArrayBuffer){
-  var caPair = forge.pki.rsa.generateKeyPair(2048);
+
+  var keys = forge.pki.rsa.generateKeyPair(2048);
+  var pemPrivateKey = forge.pki.privateKeyToPem(keys.privateKey);
+  var pemPublicKey = forge.pki.publicKeyToPem(keys.publicKey);
+
+
+  //var name = document.getElementById("usrname").value;
+  //var family = document.getElementById("family").value;
+
+
+  console.log('Generating 2048-bit key-pair...');
+
+
+    console.log('Key-pair created.');
+    // openssl req -new -config ../openssl.cnf -key smime.key -out smime.csr
+    // Note: Doesn't actually use .cnf, read in .key or output .csr; done in-memory
+    // Note: Could skip creating a CSR here if you're the one generating the keys
+    console.log('Creating certification request (CSR) ...');
+    var csr = forge.pki.createCertificationRequest();
+    csr.publicKey = keys.publicKey;
+    var attrsSubject = [{
+        name: 'commonName',
+        value: ' '
+      }, {
+        name: 'countryName',
+        value: 'US'
+      }, {
+        shortName: 'ST',
+        value: ''
+      }, {
+        name: 'localityName',
+        value: 'New York'
+      }, {
+        name: 'organizationName',
+        value: 'organization'
+      }, {
+        shortName: 'OU',
+        value: ' '
+      }];
+      csr.setSubject(attrsSubject)
+
+    // add optional attributes
+    /*csr.setAttributes([{
+      name: 'challengePassword',
+      value: 'password'
+    }, {
+      name: 'unstructuredName',
+      value: 'My company'
+    }]);*/
+
+    // sign certification request
+    csr.sign(keys.privateKey);
+    console.log('Certification request (CSR) created.');
+
+
+  console.log('Creating certificate...');
+  var cert = forge.pki.createCertificate();
   var pair = forge.pki.rsa.generateKeyPair(2048);
 
-  var pemPrivateKey = forge.pki.privateKeyToPem(pair.privateKey);
-  var pemPublicKey = forge.pki.publicKeyToPem(pair.publicKey);
-
-  document.getElementById("privateKey").value = pemPrivateKey
-  document.getElementById("publicKey").value = pemPublicKey
-
-  var name = document.getElementById("usrname").value;
-  var family = document.getElementById("family").value;
-
-
-  console.log('Creating self-signed certificate...');
-  var cert = forge.pki.createCertificate();
-  cert.publicKey = pair.publicKey;
+  //cert.publicKey = pair.publicKey;
   cert.serialNumber = '01';
   cert.validity.notBefore = new Date();
   cert.validity.notAfter = new Date();
   cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);
   cert.signatureOid = "1.2.840.113549.1.1.11";
-  console.log(cert.md)
+  cert.setSubject(csr.subject.attributes);
 
-  var attrsSubject = [{
-    name: 'commonName',
-    value: name +' ' + family
-  }, {
-    name: 'countryName',
-    value: 'US'
-  }, {
-    shortName: 'ST',
-    value: ''
-  }, {
-    name: 'localityName',
-    value: 'New York'
-  }, {
-    name: 'organizationName',
-    value: 'organization'
-  }, {
-    shortName: 'OU',
-    value: ' '
-  }];
+
   var attrsIssuer = [{
     name: 'commonName',
     value: 'Biotype.co'
@@ -61,8 +87,8 @@ function createCertificate(pdfArrayBuffer,imageArrayBuffer){
     shortName: 'OU',
     value: 'Biotype'
   }];
-  cert.setSubject(attrsSubject);
   cert.setIssuer(attrsIssuer);
+
   cert.setExtensions([{
     name: 'basicConstraints',
     cA: true
@@ -79,9 +105,16 @@ function createCertificate(pdfArrayBuffer,imageArrayBuffer){
       type: 6, // URI
       value: 'http://biotype.co'
     }]
-  }]);
-
-  cert.sign(caPair.privateKey,forge.md.sha256.create());
+  },{
+  name: 'extKeyUsage',
+  serverAuth: true,
+  clientAuth: true,
+  codeSigning: true,
+  emailProtection: true,
+  timeStamping: true
+}]);
+  cert.publicKey = csr.publicKey;
+  cert.sign(pair.privateKey,forge.md.sha256.create());
   console.log('Certificate created.');
 
 
@@ -89,17 +122,17 @@ function createCertificate(pdfArrayBuffer,imageArrayBuffer){
   console.log('\nCreating PKCS#12...');
   var password = 'password';
   var newPkcs12Asn1 = forge.pkcs12.toPkcs12Asn1(
-    pair.privateKey, [cert], password,
+    keys.privateKey, [cert], password,
     {algorithm: '3des', generateLocalKeyId: true, friendlyName: 'test'});
   var newPkcs12Der = forge.asn1.toDer(newPkcs12Asn1).getBytes();
 
-  var a = document.getElementById('downloadCert');
-  a.download = 'certificate.p12';
-  a.href = 'data:application/x-pkcs12;base64,' + forge.util.encode64(newPkcs12Der)
+  //var a = document.getElementById('downloadCert');
+  //a.download = 'certificate.p12';
+  //a.href = 'data:application/x-pkcs12;base64,' + forge.util.encode64(newPkcs12Der)
 
   var certArrayBuffer = base64StringToArrayBuffer(forge.util.encode64(newPkcs12Der))
-
-  signPDF(pdfArrayBuffer,certArrayBuffer,imageArrayBuffer)
+  return certArrayBuffer
+  //signPDF(pdfArrayBuffer,certArrayBuffer,imageArrayBuffer,[])
 
 }
 

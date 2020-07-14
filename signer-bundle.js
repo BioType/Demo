@@ -45773,23 +45773,58 @@ var signer = require('pdf-signer')
 //const helpers = require('node-signpdf/dist/helpers')
 
 
-window.signPDF = async function(pdfArrayBuffer,certArrayBuffer,imageArrayBuffer){
+window.signPDF = async function(pdfArrayBuffer,certArrayBuffer,imageArrayBuffer, width){
             var certBuffer = toBuffer(certArrayBuffer)
             var pdfBuffer = toBuffer(pdfArrayBuffer)
             var imageBuffer = toBuffer(imageArrayBuffer)
 
-            var name = document.getElementById("usrname").value + ' ' + document.getElementById("family").value;
 
+            //var name = document.getElementById("usrname").value + ' ' + document.getElementById("family").value;
+            var name = ''
             var [x0,y0,canvas_scale, current_page] = getCoordsAndScale()
 
             if( (typeof x0) != 'number' || (typeof y0) != 'number'){
               x0 = 100*canvas_scale
               y0=600*canvas_scale
             }
-            const height = 70
-            const width = 120
+            //const height = 45
+            //const width = 120
+
+            const titleRefWidth = 120
+            const dateRefWidth = 120
+            if(width){
+              var height = 45,
+                  titleFont = 12,
+                  dateFont = 9,
+                  yPosTitle = height,
+                  yPosDate = 10,
+                  yPosImage = 20,
+                  imageSpace = 100,
+                  imageStrech = 15,
+                  title = 'BioSigned by: ';
+
+            }else{
+
+              var height = 60,
+                  width = 120,
+                  titleFont = 10,
+                  dateFont = 8,
+                  yPosTitle = height-20,
+                  yPosDate = 10,
+                  imageSpace = 200,
+                  imageStrech = 30,
+                  yPosImage = 20,
+                  title = 'BioSigned by: ';
+            }
+
+
+            console.log("width/titleRefWidth: ",titleRefWidth/width)
+            console.log("width/dateRefWidth: ",dateRefWidth/width)
+
+
             var today = displayDate()
-            var signedPDF = await signer.sign(pdfBuffer,certBuffer,'password',{
+
+            var attributes = {
                 reason: '2',
                 email: '',
                 location: 'Location',
@@ -45799,24 +45834,32 @@ window.signPDF = async function(pdfArrayBuffer,certArrayBuffer,imageArrayBuffer)
                   signatureCoordinates: { left: x0/canvas_scale, bottom: 860 - y0/canvas_scale, right: x0/canvas_scale+width, top: 860 - y0/canvas_scale-height },
                   signatureDetails: [
                     {
-                      value: 'e-signed by: ' + name,
-                      fontSize: 9,
-                      transformOptions: { rotate: 0, space: 1, tilt: 0, xPos: 5, yPos: height-20 },
+                      value: title,
+                      fontSize: titleFont,
+                      transformOptions: { rotate: 0, space: titleRefWidth/width, tilt: 0, xPos: 5, yPos: yPosTitle },
                     },
                     {
                       value: 'Date: ' + today,
-                      fontSize: 9,
-                      transformOptions: { rotate: 0, space: 1, tilt: 0, xPos: 5, yPos: height-28 },
+                      fontSize: dateFont,
+                      transformOptions: { rotate: 0, space: dateRefWidth/width, tilt: 0, xPos: 25, yPos: yPosDate },
                     },
                   ],
                   imageDetails: {
                     imagePath: imageBuffer,
-                    transformOptions: { rotate: 0, space: 200, stretch: 30, tilt: 0, xPos: 10, yPos: 10 },
+                    transformOptions: { rotate: 0, space: imageSpace, stretch: imageStrech, tilt: 0, xPos: 25, yPos: yPosImage },
                   },
                 },
-              })
+              }
+
+            var signedPDF = await signer.sign(pdfBuffer,certBuffer,'password',attributes)
 
             var pdfArrayBuffer = toArrayBuffer(signedPDF)
+
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("loaderText").style.display = "none";
+            closemodal()
+            document.getElementById("downloadSignedPdf").style.display = "block";
+            reRender(pdfArrayBuffer)
             saveByteArray('signed-document.pdf', pdfArrayBuffer, 'downloadSignedPdf')
           }
 
