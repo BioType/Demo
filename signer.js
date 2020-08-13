@@ -2,52 +2,95 @@ var signer = require('pdf-signer')
 const helpers = require('node-signpdf/dist/helpers')
 
 
-window.signPDF = function(pdfArrayBuffer,certArrayBuffer){
+
+
+window.signPDF = async function(pdfArrayBuffer,certArrayBuffer,imageArrayBuffer, width){
             var certBuffer = toBuffer(certArrayBuffer)
             var pdfBuffer = toBuffer(pdfArrayBuffer)
-            //console.log("pdfBuffer:")
-            //console.log(pdfBuffer)
-            //console.log("certBuffer: ")
-            //console.log(certBuffer)
-            //var pdfBuffer2 = helpers.plainAddPlaceholder({
-            //  pdfBuffer,
-            //  reason: 'I have reviewed it.',
-            //  signatureLength: 1612,
-            //})
+            var imageBuffer = toBuffer(imageArrayBuffer)
+
+
+            //var name = document.getElementById("usrname").value + ' ' + document.getElementById("family").value;
+            var name = ''
             var [x0,y0,canvas_scale, current_page] = getCoordsAndScale()
 
             if( (typeof x0) != 'number' || (typeof y0) != 'number'){
               x0 = 100*canvas_scale
               y0=600*canvas_scale
             }
+            //const height = 45
+            //const width = 120
 
-            const height = 100
-            const width = 200
-            var signedPDF = signer.sign(pdfBuffer2,certBuffer,'password',{
+            const titleRefWidth = 120
+            const dateRefWidth = 120
+            if(width){
+              var height = 45,
+                  titleFont = 12,
+                  dateFont = 9,
+                  yPosTitle = height,
+                  yPosDate = 10,
+                  yPosImage = 20,
+                  imageSpace = 100,
+                  imageStrech = 15,
+                  title = 'BioSigned by: ';
+
+            }else{
+
+              var height = 60,
+                  width = 120,
+                  titleFont = 10,
+                  dateFont = 8,
+                  yPosTitle = height-20,
+                  yPosDate = 10,
+                  imageSpace = 200,
+                  imageStrech = 30,
+                  yPosImage = 20,
+                  title = 'BioSigned by: ';
+            }
+
+
+            console.log("width/titleRefWidth: ",titleRefWidth/width)
+            console.log("width/dateRefWidth: ",dateRefWidth/width)
+
+
+            var today = displayDate()
+
+            var attributes = {
                 reason: '2',
                 email: '',
-                location: 'Location, LO',
-                signerName: 'Test User',
+                location: 'Location',
+                signerName: name,
+                shouldAnnotationAppearOnFirstPage: current_page - 1,
                 annotationAppearanceOptions: {
-                  signatureCoordinates: { left: x0/canvas_scale, bottom: y0/canvas_scale, right: x0/canvas_scale+width, top: y0/canvas_scale+height },
+                  signatureCoordinates: { left: x0/canvas_scale, bottom: 860 - y0/canvas_scale, right: x0/canvas_scale+width, top: 860 - y0/canvas_scale-height },
                   signatureDetails: [
                     {
-                      value: 'Signed by: Biotype',
-                      fontSize: 7,
-                      transformOptions: { rotate: 0, space: 1, tilt: 0, xPos: 20, yPos: 20 },
+                      value: title,
+                      fontSize: titleFont,
+                      transformOptions: { rotate: 0, space: titleRefWidth/width, tilt: 0, xPos: 5, yPos: yPosTitle },
                     },
                     {
-                      value: 'Date: 2020-07-01',
-                      fontSize: 7,
-                      transformOptions: { rotate: 0, space: 1, tilt: 0, xPos: 20, yPos: 30 },
+                      value: 'Date: ' + today,
+                      fontSize: dateFont,
+                      transformOptions: { rotate: 0, space: dateRefWidth/width, tilt: 0, xPos: 25, yPos: yPosDate },
                     },
                   ],
+                  imageDetails: {
+                    imagePath: imageBuffer,
+                    transformOptions: { rotate: 0, space: imageSpace, stretch: imageStrech, tilt: 0, xPos: 25, yPos: yPosImage },
+                  },
                 },
-              })
+              }
 
-            //console.log("This is the signedPDF)
-            //console.log(signedPDF)
+            var signedPDF = await signer.sign(pdfBuffer,certBuffer,'password',attributes)
+
             var pdfArrayBuffer = toArrayBuffer(signedPDF)
+
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("loaderText").style.display = "none";
+            closemodal()
+            document.getElementById("downloadSignedPdf").style.display = "block";
+            reRender(pdfArrayBuffer)
             saveByteArray('signed-document.pdf', pdfArrayBuffer, 'downloadSignedPdf')
           }
 
@@ -71,8 +114,27 @@ function toArrayBuffer(buffer) {
 
 function saveByteArray(reportName, byte,  element) {
     var blob = new Blob([byte], {type: "application/pdf"});
+    var queryElement = '#'+ element
     var link = document.getElementById(element);
     link.href = window.URL.createObjectURL(blob);
     var fileName = reportName;
     link.download = fileName;
 };
+
+function displayDate(){
+  var today = new Date();
+  var dd = today.getDate();
+
+  var mm = today.getMonth()+1;
+  var yyyy = today.getFullYear();
+  if(dd<10)
+  {
+    dd='0'+dd;
+  }
+
+  if(mm<10)
+  {
+    mm='0'+mm;
+  }
+return dd+'/'+mm+'/'+yyyy
+}

@@ -14094,9 +14094,8 @@ const pdfkitAddPlaceholder = ({
     P: pdf.page.dictionary // eslint-disable-line no-underscore-dangle
 
   });
+  pdf.page.dictionary.data.Annots = [widget]; // Include the widget in a page
 
-  //pdf.page.dictionary.data.Annots = [widget]; // Include the widget in a page
-  pdf._root.data.Pages.data.Kids[0].data.Annots = [widget] // Include the widget in a specific page
   let form;
 
   if (!isAcroFormExists) {
@@ -14385,7 +14384,7 @@ const createBufferPageWithAnnotation = (pdf, info, pagesRef, widget) => {
     annots = '/Annots [';
   }
 
-  const pagesDictionaryIndex = getIndexFromRef(info.xref, pagesRef);
+  const pagesDictionaryIndex = (0, _getIndexFromRef.default)(info.xref, pagesRef);
   const widgetValue = widget.toString();
   annots = annots + ' ' + widgetValue + ']'; // add the trailing ] back
 
@@ -14396,12 +14395,7 @@ const createBufferPageWithAnnotation = (pdf, info, pagesRef, widget) => {
     postAnnots = pagesDictionary.substr(annotsEnd + 1);
   }
 
-  return Buffer.concat([
-    Buffer.from(`${pagesDictionaryIndex} 0 obj\n`),
-    Buffer.from('<<\n'),
-    Buffer.from(`${preAnnots + annots + postAnnots}\n`),
-    Buffer.from('\n>>\nendobj\n'),
-]);
+  return Buffer.concat([Buffer.from(`${pagesDictionaryIndex} 0 obj\n`), Buffer.from('<<\n'), Buffer.from(`${preAnnots + annots + postAnnots}\n`), Buffer.from('\n>>\nendobj\n')]);
 };
 
 var _default = createBufferPageWithAnnotation;
@@ -14942,14 +14936,11 @@ exports.getImage = function (imagePath, pdf) { return __awaiter(void 0, void 0, 
             case 0:
                 //data = fs_1.default.readFileSync(imagePath);
                 data = imagePath
-
                 if (!(data[0] === 0xff && data[1] === 0xd8)) return [3 /*break*/, 1];
-
                 img = jpeg_appender_1.getJpgImage(pdf, data);
                 return [3 /*break*/, 4];
             case 1:
                 if (!(data[0] === 0x89 && data.toString('ascii', 1, 4) === 'PNG')) return [3 /*break*/, 3];
-
                 return [4 /*yield*/, png_appender_1.getPngImage(pdf, data)];
             case 2:
                 img = _a.sent();
@@ -15022,9 +15013,7 @@ exports.getJpgImage = function (pdf, data) {
     if (colorSpace === 'DeviceCMYK') {
         baseJpgData['Decode'] = [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0];
     }
-
     var image = pdf.ref(baseJpgData, null, data);
-
     return image;
 };
 
@@ -15206,40 +15195,63 @@ var getSmask = function (pdf, image, alphaChannel) {
 };
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":10,"png-js":136,"zlib":9}],74:[function(require,module,exports){
+},{"buffer":10,"png-js":138,"zlib":9}],74:[function(require,module,exports){
+arguments[4][52][0].apply(exports,arguments)
+},{"dup":52}],75:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DEFAULT_SIGNATURE_LENGTH = 8192;
 exports.DEFAULT_BYTE_RANGE_PLACEHOLDER = '**********';
 
-},{}],75:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 (function (Buffer){
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _findObject = _interopRequireDefault(require("./find-object"));
+
+var _getIndexFromRef = _interopRequireDefault(require("./get-index-from-ref"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+const createBufferPageWithAnnotation = (pdf, info, pagesRef, widget) => {
+  const pagesDictionary = (0, _findObject.default)(pdf, info.xref, pagesRef).toString(); // Extend page dictionary with newly created annotations
+
+  let annotsStart, annotsEnd, annots;
+  annotsStart = pagesDictionary.indexOf('/Annots');
+
+  if (annotsStart > -1) {
+    annotsEnd = pagesDictionary.indexOf(']', annotsStart);
+    annots = pagesDictionary.substr(annotsStart, annotsEnd + 1 - annotsStart);
+    annots = annots.substr(0, annots.length - 1); // remove the trailing ]
+  } else {
+    annotsStart = pagesDictionary.length;
+    annotsEnd = pagesDictionary.length;
+    annots = '/Annots [';
+  }
+
+  const pagesDictionaryIndex = (0, _getIndexFromRef.default)(info.xref, pagesRef);
+  const widgetValue = widget.toString();
+  annots = annots + ' ' + widgetValue + ']'; // add the trailing ] back
+
+  const preAnnots = pagesDictionary.substr(0, annotsStart);
+  let postAnnots = '';
+
+  if (pagesDictionary.length > annotsEnd) {
+    postAnnots = pagesDictionary.substr(annotsEnd + 1);
+  }
+
+  return Buffer.concat([Buffer.from(`${pagesDictionaryIndex} 0 obj\n`), Buffer.from('<<\n'), Buffer.from(`${preAnnots + annots + postAnnots}\n`), Buffer.from('\n>>\nendobj\n')]);
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-var find_object_1 = __importDefault(require("./find-object"));
-var get_index_from_ref_1 = __importDefault(require("./get-index-from-ref"));
-var createBufferPageWithAnnotation = function (pdf, info, pagesRef, widget) {
-    var pagesDictionary = find_object_1.default(pdf, info.xref, pagesRef).toString();
-    var splittedDictionary = pagesDictionary.split('/Annots')[0];
-    var splittedIds = pagesDictionary.split('/Annots')[1];
-    splittedIds = splittedIds === undefined ? '' : splittedIds.replace(/[\[\]]/g, ''); // eslint-disable-next-line no-useless-escape
-    var pagesDictionaryIndex = get_index_from_ref_1.default(info.xref, pagesRef);
-    var widgetValue = widget.toString();
-    return Buffer.concat([
-        Buffer.from(pagesDictionaryIndex + " 0 obj\n"),
-        Buffer.from('<<\n'),
-        Buffer.from(splittedDictionary + "\n"),
-        Buffer.from("/Annots [" + splittedIds + " " + widgetValue + "]"),
-        Buffer.from('\n>>\nendobj\n'),
-    ]);
-};
+
 exports.default = createBufferPageWithAnnotation;
 
 }).call(this,require("buffer").Buffer)
-},{"./find-object":78,"./get-index-from-ref":79,"buffer":10}],76:[function(require,module,exports){
+},{"./find-object":79,"./get-index-from-ref":80,"buffer":10}],77:[function(require,module,exports){
 (function (Buffer){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
@@ -15260,7 +15272,7 @@ var createBufferRootWithAcroform = function (info, form) {
 exports.default = createBufferRootWithAcroform;
 
 }).call(this,require("buffer").Buffer)
-},{"./get-index-from-ref":79,"buffer":10}],77:[function(require,module,exports){
+},{"./get-index-from-ref":80,"buffer":10}],78:[function(require,module,exports){
 (function (Buffer){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -15272,57 +15284,187 @@ var createBufferTrailer = function (pdf, info, addedReferences) {
         rows[index + 1] = index + " 1\n" + paddedOffset + " 00000 n ";
     });
     rows = rows.filter(function (row) { return row !== undefined; });
-    return Buffer.concat([
+
+    var trailer = Buffer.concat([
         Buffer.from('xref\n'),
         Buffer.from(info.xref.startingIndex + " 1\n"),
         Buffer.from(rows.join('\n')),
         Buffer.from('\ntrailer\n'),
         Buffer.from('<<\n'),
         Buffer.from("/Size " + (info.xref.maxIndex + 1) + "\n"),
-        Buffer.from("/Prev " + info.xRefPosition + "\n"),
-        Buffer.from("/Root " + info.rootRef + "\n"),
-        Buffer.from('/Info 15 0 R\n'),
-        Buffer.from('>>\n'),
-        Buffer.from('startxref\n'),
-        Buffer.from(pdf.length + "\n"),
-        Buffer.from('%%EOF'),
-    ]);
+      ])
+
+      if(!info.isXRefStream){
+        trailer = Buffer.concat([trailer, Buffer.from("/Prev " + info.xRefPosition + "\n"),])
+      }else{
+        trailer = Buffer.concat([trailer, Buffer.from("/XRefStm " + info.xRefPosition + "\n"),])
+      }
+
+
+    trailer =  Buffer.concat([
+      trailer,
+      Buffer.from("/Root " + info.rootRef + "\n"),
+      Buffer.from( info.infoObject +"\n"),
+      Buffer.from('>>\n'),
+      Buffer.from('startxref\n'),
+      Buffer.from(pdf.length + "\n"),
+      Buffer.from('%%EOF'),
+    ])
+
+
+    return trailer;
 };
 exports.default = createBufferTrailer;
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":10}],78:[function(require,module,exports){
+},{"buffer":10}],79:[function(require,module,exports){
+(function (Buffer){
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-var get_index_from_ref_1 = __importDefault(require("./get-index-from-ref"));
-var findObject = function (pdf, refTable, ref) {
-    var index = get_index_from_ref_1.default(refTable, ref);
-    var offset = refTable.offsets.get(index);
-    var slice = pdf.slice(offset);
-    slice = slice.slice(0, slice.indexOf('endobj'));
-    slice = slice.slice(slice.indexOf('<<') + 2);
-    slice = slice.slice(0, slice.lastIndexOf('>>'));
-    return slice;
-};
-exports.default = findObject;
 
-},{"./get-index-from-ref":79}],79:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var getIndexFromRef = function (refTable, ref) {
-    var rawIndex = ref.split(' ')[0];
-    var index = parseInt(rawIndex);
-    if (!refTable.offsets.has(index)) {
-        throw new Error("Failed to locate object \"" + ref + "\".");
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _getIndexFromRef = _interopRequireDefault(require("./get-index-from-ref"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/**
+ * @param {Buffer} pdf
+ * @param {Map} refTable
+ * @returns {object}
+ */
+const findObject = (pdf, refTable, ref) => {
+  const index = (0, _getIndexFromRef.default)(refTable, ref);
+  console.log("index: ")
+  console.log(index)
+  const type = refTable.types.get(index);
+  console.log("type:",type.charAt(0))
+  if(type.charAt(0) === "c"){
+    const object = refTable.offsets.get(index);
+    console.log("object:",object)
+    const offset = refTable.offsets.get(object);
+    console.log("offset:", offset)
+    var slice = readStream(pdf,offset,index)
+  }else{
+    const offset = refTable.offsets.get(index);
+    console.log("offset:", offset)
+    var slice = readObject(pdf,offset)
+  }
+
+
+  console.log("This is the resultant slice:")
+  console.log(slice)
+  return slice
+}
+
+
+var readObject = function(pdf,offset){
+  let slice = pdf.slice(offset);
+  slice = slice.slice(0, slice.indexOf('endobj'));
+  slice = slice.slice(slice.indexOf('<<') + 2);
+  slice = slice.slice(0, slice.lastIndexOf('>>'));
+  return slice
+}
+
+
+var readStream = function(pdf,offset,index){
+  let slice = pdf.slice(offset);
+  slice = slice.slice(0, slice.indexOf('endstream'));
+  let info = slice.slice(slice.indexOf('<<') + 2);
+  info = info.slice(0, info.lastIndexOf('>>')).toString();
+  console.log("raw object info: ")
+  console.log(info.toString())
+
+  let n = parseInt(info.split('/N ')[1].split('/')[0])
+  let first = parseInt(info.split('/First ')[1].split('/')[0])
+  console.log("numero de objetos: ", n)
+  console.log("offset bytes en el stream decodificado del primer objeto: ", first)
+
+
+  let stream = slice.slice(slice.indexOf('>>stream')+10)
+  console.log("raw object stream: ")
+  console.log(stream.toString())
+  var decodedStream  = pako.inflate(stream);
+  var asciiStream = Buffer.from(decodedStream).toString('ascii')
+  console.log("decompressed object stream:")
+  console.log(decodedStream)
+  console.log("To ascii?: ")
+  console.log(Buffer.from(decodedStream).toString('ascii'))
+
+
+  let compressedObjectsInfo = decodedStream.subarray(0,first-1)
+  compressedObjectsInfo = Buffer.from(compressedObjectsInfo).toString('ascii')
+  console.log("compressed objects info: ")
+  console.log(compressedObjectsInfo)
+  let compressedObjectsArray = parseInt(compressedObjectsInfo.split(' '))
+
+  let compressedObjects = decodedStream.subarray(first,decodedStream.length-1)
+  console.log("compressed objects (to ascii): ")
+  console.log(Buffer.from(compressedObjects).toString('ascii'))
+
+  for(var i =0; i<compressedObjectsInfo.length;i=i+2){
+    if(compressedObjectsInfo[i] === index){
+      var startingByte = compressedObjectsInfo[i+1]
+      if( i+3 > compressedObjectsInfo.length){
+        var endingByte = compressedObjects.length -1
+      }else{
+        var endingByte = compressedObjectsInfo[i+3]
+      }
+
     }
-    return index;
-};
-exports.default = getIndexFromRef;
+  }
 
-},{}],80:[function(require,module,exports){
+
+
+
+  let object = compressedObjects.subarray(startingByte,endingByte)
+  object = Buffer.from(object).toString('ascii')
+  console.log("This is the compressed object found:")
+  console.log(object)
+
+
+  return object.toString()
+}
+
+
+var _default = findObject;
+exports.default = _default;
+
+}).call(this,require("buffer").Buffer)
+},{"./get-index-from-ref":80,"buffer":10}],80:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _SignPdfError = _interopRequireDefault(require("./SignPdfError"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/**
+ * @param {object} refTable
+ * @param {string} ref
+ * @returns {number}
+ */
+const getIndexFromRef = (refTable, ref) => {
+  let [index] = ref.split(' ');
+  index = parseInt(index);
+
+  if (!refTable.offsets.has(index)) {
+    throw new _SignPdfError.default(`Failed to locate object "${ref}".`, _SignPdfError.default.TYPE_PARSE);
+  }
+
+  return index;
+};
+
+var _default = getIndexFromRef;
+exports.default = _default;
+
+},{"./SignPdfError":74}],81:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -15331,26 +15473,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var find_object_1 = __importDefault(require("./find-object"));
 var get_pages_dictionary_ref_1 = __importDefault(require("./get-pages-dictionary-ref"));
 var getPageRef = function (pdf, info, shouldAnnotationAppearOnFirstPage) {
-
-    if (shouldAnnotationAppearOnFirstPage === void 0) {shouldAnnotationAppearOnFirstPage = 0; }
+    console.log("ESTOY EN GET PAGE REF")
+    if (shouldAnnotationAppearOnFirstPage === void 0) { shouldAnnotationAppearOnFirstPage = false; }
     var pagesRef = get_pages_dictionary_ref_1.default(info);
+    console.log("pagesRef:")
+    console.log(pagesRef)
     var pagesDictionary = find_object_1.default(pdf, info.xref, pagesRef);
+    console.log("pagesDictionary:")
+    console.log(pagesDictionary)
     var kidsPosition = pagesDictionary.indexOf('/Kids');
     var kidsStart = pagesDictionary.indexOf('[', kidsPosition) + 1;
     var kidsEnd = pagesDictionary.indexOf(']', kidsPosition);
     var pages = pagesDictionary.slice(kidsStart, kidsEnd).toString().trim();
+    console.log("pages:")
+    console.log(pages)
     //var split = shouldAnnotationAppearOnFirstPage ? pages.split('R ')[0] + " R" : "" + pages.split('R ')[pages.split('R ').length - 1];
     if(shouldAnnotationAppearOnFirstPage == (pages.split('R ').length - 1)) {
       var split = "" + pages.split('R ')[pages.split('R ').length - 1];
     }else{
       var split = pages.split('R ')[shouldAnnotationAppearOnFirstPage] + " R"
     }
-
+    console.log("split:")
+    console.log(split)
     return split;
 };
 exports.default = getPageRef;
 
-},{"./find-object":78,"./get-pages-dictionary-ref":81}],81:[function(require,module,exports){
+},{"./find-object":79,"./get-pages-dictionary-ref":82}],82:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var getPagesDictionaryRef = function (info) {
@@ -15368,7 +15517,7 @@ var getPagesDictionaryRef = function (info) {
 };
 exports.default = getPagesDictionaryRef;
 
-},{}],82:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 (function (Buffer){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -15472,8 +15621,6 @@ var pdfkitAddPlaceholder = function (_a) {
                     AP = getAnnotationApparance(pdf, IMG, APFONT, signatureOptions);
                     SIGNATURE = getSignature(pdf, byteRangePlaceholder, signatureLength, signatureOptions.reason, signatureOptions);
                     WIDGET = getWidget(pdf, fieldIds, SIGNATURE, AP, signatureOptions.annotationAppearanceOptions.signatureCoordinates);
-                    //console.log("This is the widget:")
-                    //console.log(WIDGET)
                     ACROFORM = getAcroform(pdf, fieldIds, WIDGET, FONT, ZAF, acroFormId);
                     return [2 /*return*/, {
                             signature: SIGNATURE,
@@ -15608,7 +15755,7 @@ var getOctalCodeFromCharacter = function (character) {
 exports.default = pdfkitAddPlaceholder;
 
 }).call(this,require("buffer").Buffer)
-},{"../image/appender":71,"./const":74,"./pdf-kit-reference-mock":83,"buffer":10}],83:[function(require,module,exports){
+},{"../image/appender":71,"./const":75,"./pdf-kit-reference-mock":84,"buffer":10}],84:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -15646,7 +15793,7 @@ var PDFKitReferenceMock = /** @class */ (function (_super) {
 }(abstract_reference_1.default));
 exports.default = PDFKitReferenceMock;
 
-},{"./pdfkit/abstract_reference":84}],84:[function(require,module,exports){
+},{"./pdfkit/abstract_reference":85}],85:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var PDFAbstractReference = /** @class */ (function () {
@@ -15659,7 +15806,7 @@ var PDFAbstractReference = /** @class */ (function () {
 }());
 exports.default = PDFAbstractReference;
 
-},{}],85:[function(require,module,exports){
+},{}],86:[function(require,module,exports){
 (function (Buffer){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
@@ -15788,7 +15935,7 @@ var PDFObject = /** @class */ (function () {
 exports.PDFObject = PDFObject;
 
 }).call(this,require("buffer").Buffer)
-},{"./abstract_reference":84,"buffer":10}],86:[function(require,module,exports){
+},{"./abstract_reference":85,"buffer":10}],87:[function(require,module,exports){
 (function (Buffer){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -15843,20 +15990,43 @@ var pdfobject_1 = require("./pdfkit/pdfobject");
 var read_pdf_1 = __importDefault(require("./read-pdf"));
 var remove_trailing_new_line_1 = __importDefault(require("./remove-trailing-new-line"));
 var plainAddPlaceholder = function (pdfBuffer, signatureOptions, signatureLength) {
+    console.log("ESTOY EN PLAIN-ADD-PLACEHOLDER")
     if (signatureLength === void 0) { signatureLength = const_1.DEFAULT_SIGNATURE_LENGTH; }
     return __awaiter(void 0, void 0, void 0, function () {
         var pdf, info, pageRef, pageIndex, addedReferences, pdfKitMock, _a, form, widget, rootIndex;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
+                    console.log("Estoy en case 0")
+                    console.log("pdf antes de quitarle el trailing:")
+                    console.log(pdfBuffer.toString())
                     pdf = remove_trailing_new_line_1.default(pdfBuffer);
+                    console.log("pdf tras quitarle el trailing:")
+                    console.log(pdf.toString())
                     info = read_pdf_1.default(pdf);
+                    console.log("info: ")
+                    console.log(info)
                     pageRef = get_page_ref_1.default(pdf, info, signatureOptions.shouldAnnotationAppearOnFirstPage);
+                    ////////////
+
+
+                    console.log("pageRef:")
+                    console.log(pageRef)
                     pageIndex = get_index_from_ref_1.default(info.xref, pageRef);
+                    console.log("pageIndex:")
+                    console.log(pageIndex)
                     addedReferences = new Map();
                     pdfKitMock = {
                         ref: function (input, additionalIndex, stream) {
+                          console.log("Estoy en pdfKitMock ref function")
                             info.xref.maxIndex += 1;
+                            console.log("info.xref.maxIndex += 1: ", info.xref.maxIndex)
+                            console.log("input")
+                            console.log(input)
+                            console.log("additionalIndex:")
+                            console.log(additionalIndex)
+                            console.log("stream:")
+                            console.log(stream)
                             var index = additionalIndex != null ? additionalIndex : info.xref.maxIndex;
                             addedReferences.set(index, pdf.length + 1);
                             pdf = getAssembledPdf(pdf, index, input, stream);
@@ -15880,7 +16050,17 @@ var plainAddPlaceholder = function (pdfBuffer, signatureOptions, signatureLength
                             signatureOptions: signatureOptions,
                         })];
                 case 1:
-                    _a = _b.sent(), form = _a.form, widget = _a.widget;
+                    console.log("ESTOY EN CASE 1 DE PLAIN-ADD-PLACEHOLDER")
+                    _a = _b.sent(),
+                    form = _a.form,
+                    widget = _a.widget;
+                    console.log("_a:")
+                    console.log(_a)
+                    console.log("form:")
+                    console.log(form)
+                    console.log("widget:")
+                    console.log(widget)
+
                     if (!isContainBufferRootWithAcrofrom(pdfBuffer)) {
                         rootIndex = get_index_from_ref_1.default(info.xref, info.rootRef);
                         addedReferences.set(rootIndex, pdf.length + 1);
@@ -15925,7 +16105,8 @@ var isContainBufferRootWithAcrofrom = function (pdf) {
 exports.default = plainAddPlaceholder;
 
 }).call(this,require("buffer").Buffer)
-},{"./const":74,"./create-buffer-page-with-annotation":75,"./create-buffer-root-with-acrofrom":76,"./create-buffer-trailer":77,"./get-index-from-ref":79,"./get-page-ref":80,"./pdf-kit-add-placeholder":82,"./pdf-kit-reference-mock":83,"./pdfkit/pdfobject":85,"./read-pdf":87,"./remove-trailing-new-line":88,"buffer":10}],87:[function(require,module,exports){
+},{"./const":75,"./create-buffer-page-with-annotation":76,"./create-buffer-root-with-acrofrom":77,"./create-buffer-trailer":78,"./get-index-from-ref":80,"./get-page-ref":81,"./pdf-kit-add-placeholder":83,"./pdf-kit-reference-mock":84,"./pdfkit/pdfobject":86,"./read-pdf":88,"./remove-trailing-new-line":89,"buffer":10}],88:[function(require,module,exports){
+(function (Buffer){
 "use strict";
 var __assign = (this && this.__assign) || function () {
     __assign = Object.assign || function(t) {
@@ -15944,102 +16125,760 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var find_object_1 = __importDefault(require("./find-object"));
 var readPdf = function (pdf) {
-    var trailerStart = pdf.lastIndexOf('trailer');
-    var trailer = pdf.slice(trailerStart, pdf.length - 6);
-    var rawXRefPosition = trailer.slice(trailer.lastIndexOf('startxref') + 10).toString();
+
+    var startxrefPosition = pdf.lastIndexOf('startxref')
+    var rawXRefPosition = pdf.slice(startxrefPosition + 10).toString();
     var xRefPosition = parseInt(rawXRefPosition);
-    var refTable = readRefTable(pdf);
-    var rootSlice = trailer.slice(trailer.indexOf('/Root'));
+    console.log("parsed xRefPosition:",xRefPosition)
+
+    var refTable = readRefTable(pdf,xRefPosition);
+    console.log("Esta es la tabla final de referencia extraida:")
+    console.log(refTable)
+
+
+    var infoSlice = pdf.slice(xRefPosition)
+    var firstEOF = infoSlice.indexOf('%%EOF',1)
+    var info = infoSlice.slice(0,firstEOF)
+
+    var rootSlice = info.slice(info.indexOf('/Root'));
     rootSlice = rootSlice.slice(0, rootSlice.indexOf('/', 1));
+
+    console.log("Este es el segundo rootSlice:")
+    console.log(rootSlice)
     var rootRef = rootSlice
         .slice(6)
         .toString()
         .trim(); // /Root + at least one space
+
+    console.log("Este es rootRef:")
+    console.log(rootRef)
+
+    var infoSlice = info.slice(info.indexOf('/Info '));
+    var infoObject = infoSlice.slice(0, infoSlice.indexOf('/', 1)).toString();
+
+
+
     var root = find_object_1.default(pdf, refTable, rootRef).toString();
-    if (refTable.maxOffset > xRefPosition) {
-        throw new Error('Ref table is not at the end of the document. This document can only be signed in incremental mode.');
+    console.log("Este es el root object encontrado:")
+    console.log(root)
+    console.log("refTable.maxOffset:", refTable.maxOffset)
+    console.log("xRefPosition: ", xRefPosition)
+    /*
+    var isLinearized = pdf.indexOf('/Linearized') != -1
+    if(isLinearized){
+      var linearizationInfo = pdf.slice(pdf.indexOf('/Linearized'))
+      linearizationInfo = linearizationInfo.slice(0, linearizationInfo.indexOf('>>',1))
+      xRefPosition = parseInt(linearizationInfo.toString().split('/T ')[1].split('/')[0])+1
     }
+    console.log("refTable.maxOffset:", refTable.maxOffset)
+    console.log("xRefPosition: ", xRefPosition)
+    */
+    var isxrefStream = isStream(info)
+
+    //if (refTable.maxOffset > xRefPosition) {
+    //    throw new Error('Ref table is not at the end of the document. This document can only be signed in incremental mode.');
+    //}
     return {
         xref: refTable,
         rootRef: rootRef,
         root: root,
-        trailerStart: trailerStart,
         previousXrefs: [],
         xRefPosition: xRefPosition,
+        isXRefStream: isxrefStream,
+        infoObject: infoObject,
     };
 };
-var readRefTable = function (pdf) {
+
+
+var readRefTable = function (pdf,xRefPosition) {
     var offsetsMap = new Map();
-    var fullXrefTable = getFullXrefTable(pdf);
+    var typesMap = new Map();
+    console.log("EMPIEZO EL TRABAJO: ESTOY EN READ REF TABLE:")
+    console.log("ESTE ES EL PDF:")
+    console.log(pdf.toString())
+
+    //var xRefTableInfo = findCompressedXrefTable(pdf, true)
+    //var pdfWithoutLastTrailer = pdf.slice(0, xRefTableInfo.trailerStart);
+    //var lastXRefTableInfo = findCompressedXrefTable(pdfWithoutLastTrailer,false)
+    var fullXrefTable = getFullXrefTable(pdf,xRefPosition);
+    console.log("THIS IS THE FULL XREF TABLE: ")
+    console.log(fullXrefTable)
+    //var mergedXrefTable = __assign(__assign({}, lastXRefTableInfo.xRefContent), xRefTableInfo.xRefContent);
+    //var mergedXrefTypeTable = __assign(__assign({}, lastXRefTableInfo.xRefTypeContent), xRefTableInfo.xRefTypeContent);
+    //console.log(mergedXrefTypeTable)
+
+
     var startingIndex = 0;
     var maxOffset = 0;
-    var maxIndex = Object.keys(fullXrefTable).length - 1;
-    Object.keys(fullXrefTable).forEach(function (id) {
-        var offset = parseInt(fullXrefTable[id]);
+    var maxIndex = Object.keys(fullXrefTable.xRefContent).length - 1;
+    Object.keys(fullXrefTable.xRefContent).forEach(function (id) {
+        var offset = parseInt(fullXrefTable.xRefContent[id]);
         maxOffset = Math.max(maxOffset, offset);
         offsetsMap.set(parseInt(id), offset);
     });
+
+
+    Object.keys(fullXrefTable.xRefTypeContent).forEach(function (id) {
+        var type = fullXrefTable.xRefTypeContent[id];
+        console.log("type en objectKeys:", type, "id: ",id)
+        typesMap.set(parseInt(id), type);
+    });
+
     return {
         maxOffset: maxOffset,
         startingIndex: startingIndex,
         maxIndex: maxIndex,
         offsets: offsetsMap,
+        types: typesMap,
     };
 };
+
+
+var getFullXrefTable = function(pdf, xRefPosition){
+
+    var refTableSlice = pdf.slice(xRefPosition)
+    refTableSlice = refTableSlice.slice(0,refTableSlice.indexOf('%%EOF',1))
+
+    var isxrefStream = isStream(refTableSlice)
+
+
+    if(isxrefStream){
+      refTableSlice = refTableSlice.slice(0,refTableSlice.indexOf('\nendstream',1))
+      var lastXRefTable = readxrefStream(refTableSlice)
+    }else{
+      refTableSlice = refTableSlice.slice(0,refTableSlice.indexOf('\nstartxref',1))
+      var lastXRefTable = readxref(refTableSlice)
+    }
+
+    if(lastXRefTable.prev === undefined && lastXRefTable.XRefStm === undefined ){
+      return {
+        xRefContent:lastXRefTable.xRefContent,
+        xRefTypeContent: lastXRefTable.xRefTypeContent,
+      }
+    }
+
+    if(lastXRefTable.prev != undefined && lastXRefTable.XRefStm == undefined){
+      console.log("ESTOY EN /PREV != undefined && XREFSTM == undefined")
+      var partOfXrefTable = getFullXrefTable(pdf,lastXRefTable.prev)
+      console.log("ESTA ES PARTOFXREFTABLE")
+      console.log(partOfXrefTable)
+      console.log("ESTA ES LASTXREFTABLE")
+      console.log(lastXRefTable)
+      var mergedXrefTable = __assign(__assign({}, partOfXrefTable.xRefContent), lastXRefTable.xRefContent);
+      console.log("ESTA ES LA TABLA MERGEADA:")
+      console.log(mergedXrefTable)
+      var mergedXrefTypeTable = __assign(__assign({}, partOfXrefTable.xRefTypeContent), lastXRefTable.xRefTypeContent);
+      console.log("ESTA ES LA TABLA DE TIPOS MERGEADA:")
+      console.log(mergedXrefTypeTable)
+    }
+
+
+
+    if(lastXRefTable.prev == undefined && lastXRefTable.XRefStm != undefined){
+      var partOfXrefTableStm = getFullXrefTable(pdf,lastXRefTable.XRefStm)
+      var mergedXrefTable = __assign(__assign({}, partOfXrefTableStm.xRefContent), lastXRefTable.xRefContent);
+      var mergedXrefTypeTable = __assign(__assign({}, partOfXrefTableStm.xRefTypeContent), lastXRefTable.xRefTypeContent);
+
+    }
+
+
+    if(lastXRefTable.prev != undefined && lastXRefTable.XRefStm != undefined){
+      var partOfXrefTable = getFullXrefTable(pdf,lastXRefTable.prev)
+      var mergedXrefTable = __assign(__assign({}, partOfXrefTable.xRefContent), lastXRefTable.xRefContent);
+      var mergedXrefTypeTable = __assign(__assign({}, partOfXrefTable.xRefTypeContent), lastXRefTable.xRefTypeContent);
+
+      var partOfXrefTableStm = getFullXrefTable(pdf,lastXRefTable.XRefStm)
+      mergedXrefTable = __assign(__assign({}, partOfXrefTableStm.xRefContent), mergedXrefTable);
+      mergedXrefTypeTable = __assign(__assign({}, partOfXrefTableStm.xRefTypeContent), mergedXrefTypeTable);
+
+    }
+
+    return {
+      xRefContent:mergedXrefTable,
+      xRefTypeContent: mergedXrefTypeTable,
+    }
+}
+
+var isStream = function(refTable){
+  var foundTrailer = refTable.indexOf('trailer') != -1
+  console.log("foundTrailer: ", foundTrailer)
+  var foundTypeXRef = refTable.indexOf('/Type/XRef') != -1
+
+  console.log("foundTypeXRef: ", foundTypeXRef)
+  var foundStream = refTable.indexOf('stream') !=-1
+  console.log("foundStream: ", foundStream)
+  if(foundTrailer && foundStream && foundTypeXRef){
+    var isFirstStream = refTable.indexOf('/Type/XRef') < refTable.indexOf('trailer')
+    return isFirstStream
+  }else if((!foundTrailer) && foundTypeXRef && foundStream){
+    return true
+  }else{
+    return false
+  }
+}
+
+
+var readxrefStream = function (refTable){
+  console.log("ESTOY EN READ XREF STREAM TABLE:")
+  //var trailerStart = pdf.lastIndexOf('/DecodeParms');
+  //var trailer = pdf.slice(trailerStart,pdf.length-1);
+  //trailer =  trailer.slice(0,trailer.lastIndexOf('%%EOF'))
+  //console.log("trailer: ")
+  //console.log(trailer.toString())
+  var xRefPosition = refTable.slice(refTable.lastIndexOf('startxref') + 10).toString();
+  //.split('%%EOF')[0]
+  console.log("xRefPosition: ",xRefPosition)
+  xRefPosition = parseInt(xRefPosition)
+  console.log("parsed xRefPosition:",xRefPosition)
+
+  var size = refTable.toString().split('/Size')[1].split('/')[0];
+  console.log("size: ", size)
+  size = parseInt(size)
+
+  var widthsString = refTable.toString().split('/W[')[1].split(']')[0].split(' ')
+  var k = 0
+  var widths = []
+  for(var i = 0; i<widthsString.length; i++){
+    if(!isNaN(parseInt(widthsString[i]))){
+      widths[k] = parseInt(widthsString[i])
+      k++
+    }
+  }
+  console.log("widths: ", widths)
+
+  var predictor = refTable.toString().split('/Predictor ')
+  if(predictor.length > 1){
+    predictor = parseInt(predictor[1].split('/')[0])
+  }else{
+    predictor = 0
+  }
+  console.log("predictor: ", predictor)
+  var index = refTable.toString().split('/Index[')
+
+  console.log("index: ", index)
+  if(index.length > 1){
+    index = index[1].split(']')[0].split(' ')
+    index[0] = parseInt(index[0])
+    index[1] = parseInt(index[1])
+    console.log("parsed index: ", index)
+  }else{
+    index = [0, size]
+  }
+
+
+  var startStream = refTable.lastIndexOf('stream')
+  console.log("From startStream: ", refTable.slice(startStream).toString())
+    var stream = refTable.slice(startStream+8)
+
+  console.log("raw stream: ")
+  console.log(stream)
+
+  console.log("stream to String: ")
+  console.log(stream.toString())
+  //var resultAsBinString  = pako.inflate(stream, { to: 'string' });
+
+  var resultAsBinString  = pako.inflate(stream);
+  console.log("decompressed raw stream:")
+  console.log(resultAsBinString)
+
+  //console.log("decompressed hex stream:")
+  //console.log(Buffer.from(resultAsBinString).toString('hex'))
+  if( predictor == 12){
+    var unfilteredstream = pngUpFilterDecoder(resultAsBinString,widths)
+  }else{
+    var unfilteredstream = resultAsBinString
+  }
+
+  console.log("unfilered hex stream:")
+  console.log(Buffer.from(unfilteredstream).toString('hex'))
+
+  var fakeXrefTable = createFakeXRefTable(Buffer.from(unfilteredstream).toString('hex'), index, 2*widths[0],2*widths[1],2*widths[2])
+  console.log("fakeXrefTable.split(\n): ")
+  console.log(fakeXrefTable.split('\n'))
+  console.log("fakeXrefTable.split('\n').filter(function (l) { return l !== ''; }): ")
+  console.log(fakeXrefTable.split('\n').filter(function (l) { return l !== ''; }))
+
+
+  var isContainingPrev = refTable.toString().split('/Prev')[1] != null;
+  var isContainingXRefStm = refTable.toString().split('/XRefStm')[1] != null;
+
+  if(isContainingPrev){
+    var prevByteOffset = parseInt(refTable.toString().split('/Prev ')[1].split('/')[0])
+  }else{
+    var prevByteOffset = undefined
+  }
+
+
+  if(isContainingXRefStm){
+    var xrefStmByteOffset = parseInt(refTable.toString().split('/XRefStm ')[1].split('/')[0])
+  }else{
+    var xrefStmByteOffset = undefined
+  }
+
+  if(!isContainingPrev && !isContainingXRefStm){
+
+    var xRefContent = fakeXrefTable
+        .split('\n')
+        .filter(function (l) { return l !== ''; })
+        .reduce(parseXref, {});
+    console.log("xRefContent: ")
+    console.log(xRefContent)
+
+    var typeContent = fakeXrefTable
+        .split('\n')
+        .filter(function (l){return l !== ''; })
+        .reduce(parseTypeXref,{})
+    console.log("typeContent: ")
+    console.log(typeContent)
+
+  }else{
+    var xRefContent = fakeXrefTable
+        .split('\n')
+        .filter(function (l) { return l !== ''; })
+        .reduce(parseXref, {});
+        console.log("xRefContent: ")
+        console.log(xRefContent)
+    var typeContent = fakeXrefTable
+        .split('\n')
+        .filter(function (l){return l !== ''; })
+        .reduce(parseTypeXref,{})
+        console.log("typeContent: ")
+        console.log(typeContent)
+
+  }
+
+  console.log("return: size =", size, "RefContent = ", xRefContent)
+  return {
+    size: size,
+    prev: prevByteOffset,
+    XRefStm: xrefStmByteOffset,
+    xRefContent: xRefContent,
+    xRefTypeContent: typeContent,
+  };
+
+}
+
+var createFakeXRefTable = function(hexStream, objectRange, typeBytes, offsetBytes, generationNumberBytes){
+  var fakeXrefTable = ''
+  var realSize = 0
+  var streamOffsets = []
+  var step = (typeBytes + offsetBytes + generationNumberBytes)
+  console.log("step: ", step)
+  console.log("hexStream.length: ", hexStream.length)
+  for(var i=0; i<hexStream.length;i=i+step){
+    console.log("i: ", i)
+    console.log("type points : i",i, "i2: ", i+typeBytes)
+    console.log("type hex: ", parseInt(hexStream.slice(i,i+typeBytes),16))
+    var type = parseInt(hexStream.slice(i,i+typeBytes),16).toString()
+    console.log("type:", type)
+    console.log("offset points : i",i+typeBytes, "i2: ", i+typeBytes+offsetBytes)
+    console.log("offset hex: ", hexStream.slice(i+typeBytes,i+typeBytes+offsetBytes),16)
+    var offset = parseInt(hexStream.slice(i+typeBytes,i+typeBytes+offsetBytes),16).toString()
+
+    var N = 10-offset.length
+    for(var k= 0; k<N; k++){offset = "".concat('0',offset)}
+    console.log("offset:", offset)
+    console.log("genNumber points : i",i+typeBytes+offsetBytes, "i2: ", i+typeBytes+offsetBytes+generationNumberBytes)
+    console.log("type hex: ", hexStream.slice(i+typeBytes+offsetBytes,i+typeBytes+offsetBytes+generationNumberBytes),16)
+    var genNumber = parseInt(hexStream.slice(i+typeBytes+offsetBytes,i+typeBytes+offsetBytes+generationNumberBytes),16).toString()
+    var N = 5-genNumber.length
+    for(var k= 0; k<N; k++){genNumber ="".concat('0',genNumber)}
+    console.log("genNumber:", genNumber)
+
+    if(type === '0') {
+      type = 'f';
+      if(offset === '0000000000'){
+        genNumber = '65535'
+      }
+    } else if(type === '1'){
+      type='n'
+    }else{
+      type = 'c'
+    }
+    //if(type != 'c'){
+    //  streamOffsets[realSize] = offset
+    //  realSize++
+      fakeXrefTable = "".concat(fakeXrefTable,offset,' ',genNumber, ' ', type , '\r\n')
+    //}else{
+    //  fakeXrefTable = "".concat(fakeXrefTable,offset,' ',genNumber, ' ', type , '\r\n')
+
+    //}
+  }
+  fakeXrefTable = ''.concat(objectRange[0].toString(),' ',objectRange[1].toString(), '\r\n' , fakeXrefTable)
+
+  console.log("fakeXrefTable: ")
+  console.log( fakeXrefTable)
+  return fakeXrefTable
+}
+
+
+
+
+
+
+var pngUpFilterDecoder = function(stream, widths, predictor){
+  var rowLength = widths[0]+widths[1]+widths[2]+1,
+      fila= 0,
+      columna = 0,
+      k = 0,
+      unfilteredstream = new Uint8Array(stream.length-Math.ceil(stream.length/rowLength))
+
+  for(var i = 0; i<stream.length; i++){
+    if(columna == 0 ){ var isPngFiltered = stream[i] == 2}
+    console.log("isPngFiltered?: ", isPngFiltered)
+    if((fila === 0 && columna != 0) || (!isPngFiltered && columna != 0)){
+      //console.log("Estoy en file = 0, columna != 0")
+      unfilteredstream[k] = stream[i]
+      console.log("He entrado al primer if")
+      console.log("unfilteredstream: ", unfilteredstream[i])
+      //console.log("unfilteredstream[k] = ", unfilteredstream[k])
+      k++
+    }else if (columna != 0 ){
+      //console.log("Estoy en columna != 0")
+      //console.log("fila: ", fila, "columna: ", columna, "i: ", i , "k: ",k)
+      var upperByte = unfilteredstream[(fila-1)*(rowLength-1)+columna-1]
+      var actualByte = stream[i]
+      //console.log("upperByte: ", upperByte)
+      //console.log("actualByte: ", actualByte)
+      if(actualByte + upperByte > 256){
+        var unfilteredByte = (actualByte + upperByte)%256
+        //console.log("unfiltered")
+      }else{
+        var unfilteredByte = actualByte + upperByte
+      }
+      unfilteredstream[k] = unfilteredByte
+
+      console.log("He entrado al else if")
+      console.log("unfilteredstream: ", unfilteredstream[k])
+      //console.log("unfilteredstream[k] = ", unfilteredstream[k])
+      k++
+    }
+
+    if(((i+1) % rowLength) === 0){
+      fila +=1
+      columna = 0
+    }else{
+      columna +=1
+    }
+
+  }
+  //console.log("unfilteredstream:")
+  //console.log(unfilteredstream)
+  return unfilteredstream
+}
+
+/*
 var getFullXrefTable = function (pdf) {
+  console.log("IM AT GET FULL XREF TABLE:")
     var lastTrailerPosition = getLastTrailerPosition(pdf);
+
+    console.log("lastTrailerPosition: ",lastTrailerPosition)
     var lastXrefTable = getXref(pdf, lastTrailerPosition);
+    console.log("lastXrefTable: ",lastXrefTable)
+    console.log("lastXrefTable.prev: ",lastXrefTable.prev)
     if (lastXrefTable.prev === undefined) {
+      console.log("lastXrefTable.xRefContent: ",lastXrefTable.xRefContent)
         return lastXrefTable.xRefContent;
     }
+
     var pdfWithoutLastTrailer = pdf.slice(0, lastTrailerPosition);
+    console.log("pdfWithoutLastTrailer:")
+    console.log(pdfWithoutLastTrailer)
+    console.log("ENTRO EN BUCLE HASTA QUE NO HAYA MÁS TRAILERS")
     var partOfXrefTable = getFullXrefTable(pdfWithoutLastTrailer);
     var mergedXrefTable = __assign(__assign({}, partOfXrefTable), lastXrefTable.xRefContent);
+    console.log("mergedXrefTable:")
+    console.log(mergedXrefTable.toString())
+    console.log("SALGO DE GET FULL XREF TABLE")
     return mergedXrefTable;
 };
 var getLastTrailerPosition = function (pdf) {
+    console.log("IM AT GET LAST TRAILER POSITION:")
+    console.log("pdf: ")
+    console.log(pdf)
     var trailerStart = pdf.lastIndexOf('trailer');
+    console.log("pdf[trailerStart+1].toString(): ", pdf[trailerStart+1].toString())
+    console.log("trailerStart: ",trailerStart)
+    console.log("pdf.length-6 = ",pdf.length-6 )
     var trailer = pdf.slice(trailerStart, pdf.length - 6);
+    console.log("trailer: ",trailer.toString())
     var xRefPosition = trailer.slice(trailer.lastIndexOf('startxref') + 10).toString();
+    console.log("xRefPosition: ",xRefPosition)
     return parseInt(xRefPosition);
 };
-var getXref = function (pdf, position) {
-    var refTable = pdf.slice(position);
+*/
+var readxref = function (refTable) {
+    console.log("IM AT READXREF:")
+
+    console.log("refTable: ")
+    console.log(refTable.toString())
     refTable = refTable.slice(4);
+    console.log("refTable.slice(4): ")
+    console.log(refTable.toString())
     refTable = refTable.slice(refTable.indexOf('\n') + 1);
+    console.log("refTable=refTable.slice(refTable.indexOf('\n') + 1): ")
+    console.log(refTable.toString())
     var size = refTable.toString().split('/Size')[1];
+    console.log("size = refTable.toString().split('/Size')[1]: ")
+    console.log(size.toString())
     var _a = refTable.toString().split('trailer'), objects = _a[0], infos = _a[1];
-    var isContainingPrev = infos.split('/Prev')[1] != null;
-    var prev;
+    console.log("_a= refTable.toString().split('trailer'):")
+    console.log(_a)
+    console.log("objects = _a[0]: ")
+    console.log(_a[0])
+    console.log("infos = _a[1]:")
+    console.log(_a[1])
+    var isContainingPrev = infos.split('/Prev ')[1] != null;
+    var isContainingXRefStm = infos.split('/XRefStm ')[1] != null;
+    console.log("isContainingPrev:",isContainingPrev)
+
+    if(isContainingPrev){
+      var prevByteOffset = parseInt(infos.split('/Prev ')[1].split('/')[0])
+    }else{
+      var prevByteOffset = undefined
+    }
+
+
+    if(isContainingXRefStm){
+      var xrefStmByteOffset = parseInt(infos.split('/XRefStm ')[1].split('/')[0])
+    }else{
+      var xrefStmByteOffset = undefined
+    }
+
     var xRefContent;
-    if (isContainingPrev) {
-        var pagesRefRegex = new RegExp('Prev (\\d+)', 'g');
-        var match = pagesRefRegex.exec(infos);
-        if (match == null) {
-            throw new Error('Cant find value for this regexp Pattern');
-        }
-        prev = match[1];
+    if (isContainingPrev || isContainingXRefStm) {
+
         xRefContent = objects
             .split('\n')
             .filter(function (l) { return l !== ''; })
-            .reduce(parseTrailerXref, {});
+            .reduce(parseXref, {});
+       console.log("xRefContent = objects.split(n).filter(function (l) { return l !== ''; }).reduce(parseTrailerXref, {}): ")
+       console.log(xRefContent)
+
+       var typeContent = objects
+           .split('\n')
+           .filter(function (l){return l !== ''; })
+           .reduce(parseTypeXref,{})
+      console.log("typeContent: ")
+      console.log(typeContent)
     }
     else {
         xRefContent = objects
             .split('\n')
             .filter(function (l) { return l !== ''; })
-            .reduce(parseRootXref, {});
+            .reduce(parseXref, {});
+        console.log("xRefContent = objects.split(n).filter(function (l) { return l !== ''; }).reduce(parseRootXref, {}): ")
+        console.log(xRefContent)
+
+        var typeContent = objects
+            .split('\n')
+            .filter(function (l){return l !== ''; })
+            .reduce(parseTypeXref,{})
+            console.log("typeContent: ")
+            console.log(typeContent)
     }
+
+    console.log("return: size =", size, "prev= ", prevByteOffset, "RefContent = ", xRefContent)
     return {
         size: size,
-        prev: prev,
+        prev: prevByteOffset,
+        XRefStm: xrefStmByteOffset,
         xRefContent: xRefContent,
+        xRefTypeContent: typeContent,
     };
 };
+
+var parseXref = function(prev, curr, _index, array){
+  console.log("ESTOY EN PARSE XREF:")
+  console.log("prev: ")
+  console.log(prev)
+  console.log("curr:")
+  console.log(curr)
+  console.log("_index:")
+  console.log(_index)
+  console.log("array: ")
+  console.log(array)
+  if(array.length === 1){
+    console.log("He entrado en array.length === 1")
+    console.log("return {}")
+    return {}
+  }
+  const isObjectId = curr.split(' ').length === 2
+  if(isObjectId){
+    console.log("Is object ID.")
+    const id=curr.split(' ')[0]
+    console.log("id: ")
+    console.log(id)
+    console.log("return: ")
+    console.log({...prev,[id]:undefined})
+    return {...prev,[id]:undefined}
+  }
+  console.log("No es Object ID.")
+  console.log("curr array: ",curr.split(' '))
+  console.log("offset: ",curr.split(' ')[0])
+  const offset = curr.split(' ')[0]
+  var prevId = Object.keys(prev).find(id => prev[id] === undefined)
+  console.log("prevId: ",prevId)
+  if(prevId === undefined){
+    prevId = Object.keys(prev)[Object.keys(prev).length-1]
+    prevId = (parseInt(prevId)+1).toString()
+    console.log("This is the prevId obtained as the last prev key:")
+    console.log("prevId: ", prevId)
+
+  }
+  console.log("return: ")
+  console.log({...prev,[prevId]:parseInt(offset)})
+  return {...prev,[prevId]:parseInt(offset)}
+  }
+
+
+
+  var parseTypeXref = function(prev,curr,_index, array){
+    if(array.length === 1){
+      return {}
+    }
+    const isObjectId = curr.split(' ').length === 2
+    if(isObjectId){
+      const id=curr.split(' ')[0]
+      return {...prev,[id]:undefined}
+    }
+    const type = curr.split(' ')[2]
+    var prevId = Object.keys(prev).find(id => prev[id] === undefined)
+    if(prevId === undefined){
+      prevId = Object.keys(prev)[Object.keys(prev).length-1]
+      prevId = (parseInt(prevId)+1).toString()
+      console.log("This is the prevId type obtained as the last prev key:")
+      console.log("prevId: ", prevId)
+    }
+    return {...prev,[prevId]:type}
+  }
+
+/*
+var parseRootXref = function(prev, l , i){
+  console.log("ESTOY EN PARSE ROOT XREF:")
+  console.log("prev: ")
+  console.log(prev)
+  console.log("l:")
+  console.log(l)
+  console.log("i:")
+  console.log(i)
+  const element = l.split(' ')[0]
+  const isPageObject = parseInt(element) === 0 && element.length > 3
+  if(isPageObject){
+    return {...prev,0:0}
+  }
+  let offset = l.split(' ')[0]
+  return {...prev,[i-1]:parseInt(offset)}
+}
+
+var parseTrailerXref = function(prev,curr,_index, array){
+  console.log("ESTOY EN PARSE TRAILER XREF:")
+  console.log("prev: ")
+  console.log(prev)
+  console.log("curr:")
+  console.log(curr)
+  console.log("_index:")
+  console.log(_index)
+  console.log("array: ")
+  console.log(array)
+  if(array.length === 1){
+    console.log("He entrado en array.length === 1")
+    console.log("return {}")
+    return {}
+  }
+  const isObjectId = curr.split(' ').length === 2
+  if(isObjectId){
+    console.log("Is object ID.")
+    const id=curr.split(' ')[0]
+    console.log("id: ")
+    console.log(id)
+    console.log("return: ")
+    console.log({...prev,[id]:undefined})
+    return {...prev,[id]:undefined}
+  }
+  console.log("No es Object ID.")
+  console.log("curr array: ",curr.split(' '))
+  console.log("offset: ",curr.split(' ')[0])
+  const offset = curr.split(' ')[0]
+  const prevId = Object.keys(prev).find(id => prev[id] === undefined)
+  console.log("prevId: ",prevId)
+  if(prevId === undefined){
+    return prev
+  }
+  console.log("prevId != undefined")
+  console.log("return: ")
+  console.log({...prev,[prevId]:parseInt(offset)})
+  return {...prev,[prevId]:parseInt(offset)}
+}
+///////////////////
+var parseRootTypeXref = function(prev, l , i){
+  console.log("ESTOY EN PARSE ROOT TYPE XREF:")
+  console.log("prev: ")
+  console.log(prev)
+  console.log("l:")
+  console.log(l)
+  console.log("i:")
+  console.log(i)
+  const element = l.split(' ')[0]
+  console.log("element: ")
+  console.log(element)
+  const isPageObject = parseInt(element) === 0 && element.length > 3
+  console.log("isPageObject?",isPageObject)
+  if(isPageObject){
+    console.log("retorno: ")
+    console.log({...prev,0:'f'})
+    return {...prev,0:'f'}
+  }
+  console.log("l.split(' '): ")
+  console.log(l.split(' '))
+  if(l.split(' ').length < 3){
+    console.log("He entrado en el if")
+    console.log("type = ",l.split(' ')[0] )
+    var type = l.split(' ')[0]
+  }else{
+    console.log("He entrado en el else")
+    console.log("type = ",l.split(' ')[2] )
+    var type = l.split(' ')[2]
+  }
+  console.log("type: ", type)
+  return {...prev,[i-1]:type}
+}
+
+var parseTypeXref = function(prev,curr,_index, array){
+  if(array.length === 1){
+    return {}
+  }
+  const isObjectId = curr.split(' ').length === 2
+  if(isObjectId){
+    const id=curr.split(' ')[0]
+    return {...prev,[id]:undefined}
+  }
+  const type = curr.split(' ')[2]
+  const prevId = Object.keys(prev).find(id => prev[id] === undefined)
+  if(prevId === undefined){
+    return prev
+  }
+  return {...prev,[prevId]:type}
+}
+
+/*
 var parseRootXref = function (prev, l, i) {
+    console.log("ESTOY EN PARSE ROOT XREF:")
+    console.log("prev: ")
+    console.log(prev)
+    console.log("l:")
+    console.log(l)
+    console.log("i:")
+    console.log(i)
     var _a;
     var element = l.split(' ')[0];
+    console.log("Element:", element)
+    console.log("is page object?:")
+    console.log("parseInt(element) === 0 : ", parseInt(element) === 0)
+    console.log("element.length > 3: ", element.length > 3)
+
     var isPageObject = parseInt(element) === 0 && element.length > 3;
+    console.log("is page object: ", isPageObject)
     if (isPageObject) {
         return __assign(__assign({}, prev), { 0: 0 });
     }
@@ -16047,39 +16886,134 @@ var parseRootXref = function (prev, l, i) {
     return __assign(__assign({}, prev), (_a = {}, _a[i - 1] = parseInt(offset), _a));
 };
 var parseTrailerXref = function (prev, curr, _index, array) {
-    var _a, _b;
+    console.log("prev: ")
+    console.log(prev)
+    console.log("curr: ")
+    console.log(curr)
+    console.log("_index: ")
+    console.log(_index)
+    console.log("array: ")
+    console.log(array)
+    var _a, _b, _c;
     if (array.length === 1) {
         return {};
     }
     var isObjectId = curr.split(' ').length === 2;
     if (isObjectId) {
+        console.log("He entrado isObjectId.")
         var id = curr.split(' ')[0];
         return __assign(__assign({}, prev), (_a = {}, _a[id] = undefined, _a));
     }
     var offset = curr.split(' ')[0];
-    var prevId = Object.keys(prev).find(function (id) { return prev[id] === undefined; });
+
+    var prevId = Object.keys(prev).find(function (id) {
+      console.log("Estoy en prevId find.")
+      console.log("id:", id)
+      console.log("__assign(__assign()):", __assign(__assign({}, prev), (_c = {}, _c[parseInt(id)+1] = undefined, _c)))
+      //return __assign(__assign({}, prev), (_c = {}, _c[parseInt(id)+_index-1] = undefined, _c))
+      return prev[id] === undefined;
+    })
     if (prevId === undefined) {
+        console.log("He entrado en prevId undefined.")
         return prev;
     }
-    return __assign(__assign({}, prev), (_b = {}, _b[prevId] = parseInt(offset), _b));
+    console.log("Voy a asignar con prevId:", prevId)
+    console.log("y voy a asignar el offset: ", offset)
+    //return __assign(__assign({}, prev), (_b = {}, _b[parseInt(prevId)+_index-1] = parseInt(offset), _b));
+    return __assign(__assign({}, prev), (_b = {}, _b[parseInt(prevId)] = parseInt(offset), _b));
 };
+
+
+var parseRootTypeXref = function (prev, l, i) {
+    console.log("ESTOY EN PARSE ROOT XREF:")
+    console.log("prev: ")
+    console.log(prev)
+    console.log("l:")
+    console.log(l)
+    console.log("i:")
+    console.log(i)
+    var _a;
+    var element = l.split(' ')[0];
+    console.log("Element:", element)
+    console.log("is page object?:")
+    console.log("parseInt(element) === 0 : ", parseInt(element) === 0)
+    console.log("element.length > 3: ", element.length > 3)
+
+    var isPageObject = parseInt(element) === 0 && element.length > 3;
+    console.log("is page object: ", isPageObject)
+    if (isPageObject) {
+        return __assign(__assign({}, prev), { 0: 'f' });
+    }
+    var type = l.split(' ')[2];
+    return __assign(__assign({}, prev), (_a = {}, _a[i - 1] = type, _a));
+};
+var parseTypeXref = function (prev, curr, _index, array) {
+    console.log("prev: ")
+    console.log(prev)
+    console.log("curr: ")
+    console.log(curr)
+    console.log("_index: ")
+    console.log(_index)
+    console.log("array: ")
+    console.log(array)
+    var _a, _b, _c;
+    if (array.length === 1) {
+        return {};
+    }
+    var isObjectId = curr.split(' ').length === 2;
+    if (isObjectId) {
+        console.log("He entrado isObjectId.")
+        var id = curr.split(' ')[0];
+        return __assign(__assign({}, prev), (_a = {}, _a[id] = undefined, _a));
+    }
+    var type = curr.split(' ')[2];
+    var prevId = Object.keys(prev).find(function (id) {
+      console.log("Estoy en prevId find.")
+      console.log("id:", id)
+      console.log("__assign(__assign()):", __assign(__assign({}, prev), (_c = {}, _c[parseInt(id)+1] = undefined, _c)))
+      return __assign(__assign({}, prev), (_c = {}, _c[parseInt(id)+_index-1] = undefined, _c))
+    })
+    if (prevId === undefined) {
+        console.log("He entrado en prevId undefined.")
+        return prev;
+    }
+    console.log("Voy a asignar con prevId:", prevId)
+    return __assign(__assign({}, prev), (_b = {}, _b[parseInt(prevId)+_index-1] = type, _b));
+};
+
+*/
 exports.default = readPdf;
 
-},{"./find-object":78}],88:[function(require,module,exports){
+}).call(this,require("buffer").Buffer)
+},{"./find-object":79,"buffer":10}],89:[function(require,module,exports){
 (function (Buffer){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var removeTrailingNewLine = function (pdf) {
+    console.log("ESTOY EN REMOVE TRAILING NEW LINE")
     if (!(pdf instanceof Buffer)) {
         throw new Error('PDF expected as Buffer.');
     }
     var lastChar = pdf.slice(pdf.length - 1).toString();
+    console.log("Este es el lastChar:")
+    console.log('p'+lastChar+'p')
     var output = pdf;
     if (lastChar === '\n') {
+        console.log("He quitado el salto de línea")
         output = pdf.slice(0, pdf.length - 1);
     }
+    var lastChar = output.slice(output.length - 1).toString();
+    console.log("Este es el lastChar:")
+    console.log(lastChar)
+    if (lastChar === ' ' || lastChar === '\n' || lastChar === '\r') {
+        console.log("He quitado el espacio/salto de línea")
+        output = output.slice(0, output.length - 1);
+    }
     var lastLine = output.slice(output.length - 6).toString();
+    console.log("Esta es la ultima linea:")
+    console.log(lastLine)
     if (lastLine !== '\n%%EOF') {
+        console.log("He añadido %%EOF al pdf")
         output = Buffer.concat([output, Buffer.from('\n%%EOF')]);
     }
     return output;
@@ -16087,7 +17021,7 @@ var removeTrailingNewLine = function (pdf) {
 exports.default = removeTrailingNewLine;
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":10}],89:[function(require,module,exports){
+},{"buffer":10}],90:[function(require,module,exports){
 (function (Buffer){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
@@ -16109,6 +17043,8 @@ exports.replaceByteRangeInPdf = function (pdfBuffer) {
         throw new Error('PDF expected as Buffer.');
     }
     var pdf = remove_trailing_new_line_1.default(pdfBuffer);
+    console.log("PDF AFTER REMOVE TRAILING NEW LINE")
+    console.log(pdf.toString())
     var byteRangePlaceholder = [
         0,
         "/" + const_1.DEFAULT_BYTE_RANGE_PLACEHOLDER,
@@ -16116,6 +17052,8 @@ exports.replaceByteRangeInPdf = function (pdfBuffer) {
         "/" + const_1.DEFAULT_BYTE_RANGE_PLACEHOLDER,
     ];
     var byteRangeString = "/ByteRange [" + byteRangePlaceholder.join(' ') + "]";
+    console.log("byteRangeString: ")
+    console.log(byteRangeString)
     var byteRangePos = pdf.indexOf(byteRangeString);
     if (byteRangePos === -1) {
         throw new Error("Could not find ByteRange placeholder: " + byteRangeString);
@@ -16149,7 +17087,7 @@ var getByteRange = function (placeholderPos, placeholderLengthWithBrackets, pdfL
 };
 
 }).call(this,require("buffer").Buffer)
-},{"./const":74,"./remove-trailing-new-line":88,"buffer":10}],90:[function(require,module,exports){
+},{"./const":75,"./remove-trailing-new-line":89,"buffer":10}],91:[function(require,module,exports){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -16195,21 +17133,40 @@ var plain_add_placeholder_1 = __importDefault(require("./pdf/node-signpdf/plain-
 var sign_1 = require("./pdf/node-signpdf/sign");
 var digital_signature_service_1 = require("./signature/digital-signature.service");
 exports.sign = function (pdf, certBuffer, certPassword, signatureOptions) { return __awaiter(void 0, void 0, void 0, function () {
+  console.log("ESTOY EN SIGN.JS INICIAL")
     var pdfWithPlaceholder, _a, pdfWithActualByteRange, placeholderLength, byteRange, signature, signedPdf;
     return __generator(this, function (_b) {
         switch (_b.label) {
-            case 0: return [4 /*yield*/, plain_add_placeholder_1.default(pdf, signatureOptions)];
+            case 0:
+              console.log("HE ENTRADO EN CASE 0:")
+              return [4 /*yield*/, plain_add_placeholder_1.default(pdf, signatureOptions)];
             case 1:
+                console.log("HE ENTRADO EN CASE 1:")
+                console.log("Esto es _b:")
+                console.log(_b)
+
                 pdfWithPlaceholder = _b.sent();
-                _a = sign_1.replaceByteRangeInPdf(pdfWithPlaceholder), pdfWithActualByteRange = _a.pdf, placeholderLength = _a.placeholderLength, byteRange = _a.byteRange;
+                console.log("pdfWithPlaceholder:")
+                console.log(pdfWithPlaceholder.toString())
+                _a = sign_1.replaceByteRangeInPdf(pdfWithPlaceholder),
+                pdfWithActualByteRange = _a.pdf,
+                console.log("pdfWithActualByteRange:")
+                console.log(pdfWithActualByteRange.toString())
+                placeholderLength = _a.placeholderLength,
+                byteRange = _a.byteRange;
+
                 signature = digital_signature_service_1.getSignature(pdfWithActualByteRange, certBuffer, placeholderLength, certPassword);
+                console.log("signature:")
+                console.log(signature)
                 signedPdf = sign_1.addSignatureToPdf(pdfWithActualByteRange, byteRange[1], signature);
+                console.log("This is the signedPdf:")
+                console.log(signedPdf.toString())
                 return [2 /*return*/, signedPdf];
         }
     });
 }); };
 
-},{"./pdf/node-signpdf/plain-add-placeholder":86,"./pdf/node-signpdf/sign":89,"./signature/digital-signature.service":92}],91:[function(require,module,exports){
+},{"./pdf/node-signpdf/plain-add-placeholder":87,"./pdf/node-signpdf/sign":90,"./signature/digital-signature.service":93}],92:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -16219,8 +17176,6 @@ var node_forge_1 = __importDefault(require("node-forge"));
 exports.getDataFromP12Cert = function (p12Buffer, certPassword) {
     var forgeCert = node_forge_1.default.util.createBuffer(p12Buffer.toString('binary'));
     var p12Asn1 = node_forge_1.default.asn1.fromDer(forgeCert);
-    //console.log("This is the certPassword:")
-    //console.log(certPassword)
     var p12data = node_forge_1.default.pkcs12.pkcs12FromAsn1(p12Asn1, false, certPassword);
     return p12data;
 };
@@ -16232,7 +17187,7 @@ exports.getCertBags = function (p12) {
     return certBags;
 };
 
-},{"node-forge":104}],92:[function(require,module,exports){
+},{"node-forge":105}],93:[function(require,module,exports){
 (function (Buffer){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
@@ -16334,7 +17289,7 @@ var getValidatedCertificate = function (privateKey, publicKey, rawCertificate) {
 };
 
 }).call(this,require("buffer").Buffer)
-},{"./cert.util":91,"buffer":10,"node-forge":104}],93:[function(require,module,exports){
+},{"./cert.util":92,"buffer":10,"node-forge":105}],94:[function(require,module,exports){
 /**
  * Advanced Encryption Standard (AES) implementation.
  *
@@ -17427,7 +18382,7 @@ function _createCipher(options) {
   return cipher;
 }
 
-},{"./cipher":97,"./cipherModes":98,"./forge":102,"./util":134}],94:[function(require,module,exports){
+},{"./cipher":98,"./cipherModes":99,"./forge":103,"./util":135}],95:[function(require,module,exports){
 /**
  * A Javascript implementation of AES Cipher Suites for TLS.
  *
@@ -17711,7 +18666,7 @@ function compareMacs(key, mac1, mac2) {
   return mac1 === mac2;
 }
 
-},{"./aes":93,"./forge":102,"./tls":133}],95:[function(require,module,exports){
+},{"./aes":94,"./forge":103,"./tls":134}],96:[function(require,module,exports){
 /**
  * Javascript implementation of Abstract Syntax Notation Number One.
  *
@@ -19121,7 +20076,7 @@ asn1.prettyPrint = function(obj, level, indentation) {
   return rval;
 };
 
-},{"./forge":102,"./oids":113,"./util":134}],96:[function(require,module,exports){
+},{"./forge":103,"./oids":114,"./util":135}],97:[function(require,module,exports){
 (function (Buffer){
 /**
  * Base-N/Base-X encoding/decoding functions.
@@ -19311,7 +20266,7 @@ function _encodeWithByteBuffer(input, alphabet) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":7}],97:[function(require,module,exports){
+},{"buffer":7}],98:[function(require,module,exports){
 /**
  * Cipher base API.
  *
@@ -19543,7 +20498,7 @@ BlockCipher.prototype.finish = function(pad) {
   return true;
 };
 
-},{"./forge":102,"./util":134}],98:[function(require,module,exports){
+},{"./forge":103,"./util":135}],99:[function(require,module,exports){
 /**
  * Supported cipher modes.
  *
@@ -20532,7 +21487,7 @@ function from64To32(num) {
   return [(num / 0x100000000) | 0, num & 0xFFFFFFFF];
 }
 
-},{"./forge":102,"./util":134}],99:[function(require,module,exports){
+},{"./forge":103,"./util":135}],100:[function(require,module,exports){
 /**
  * Debugging support for web applications.
  *
@@ -20612,7 +21567,7 @@ forge.debug.clear = function(cat, name) {
   }
 };
 
-},{"./forge":102}],100:[function(require,module,exports){
+},{"./forge":103}],101:[function(require,module,exports){
 /**
  * DES (Data Encryption Standard) implementation.
  *
@@ -21110,7 +22065,7 @@ function _createCipher(options) {
   return cipher;
 }
 
-},{"./cipher":97,"./cipherModes":98,"./forge":102,"./util":134}],101:[function(require,module,exports){
+},{"./cipher":98,"./cipherModes":99,"./forge":103,"./util":135}],102:[function(require,module,exports){
 (function (Buffer){
 /**
  * JavaScript implementation of Ed25519.
@@ -22110,7 +23065,7 @@ function M(o, a, b) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./forge":102,"./jsbn":105,"./random":125,"./sha512":130,"./util":134,"buffer":7}],102:[function(require,module,exports){
+},{"./forge":103,"./jsbn":106,"./random":126,"./sha512":131,"./util":135,"buffer":7}],103:[function(require,module,exports){
 /**
  * Node.js module for Forge.
  *
@@ -22125,7 +23080,7 @@ module.exports = {
   }
 };
 
-},{}],103:[function(require,module,exports){
+},{}],104:[function(require,module,exports){
 /**
  * Hash-based Message Authentication Code implementation. Requires a message
  * digest object that can be obtained, for example, from forge.md.sha1 or
@@ -22273,7 +23228,7 @@ hmac.create = function() {
   return ctx;
 };
 
-},{"./forge":102,"./md":109,"./util":134}],104:[function(require,module,exports){
+},{"./forge":103,"./md":110,"./util":135}],105:[function(require,module,exports){
 /**
  * Node.js module for Forge.
  *
@@ -22310,7 +23265,7 @@ require('./task');
 require('./tls');
 require('./util');
 
-},{"./aes":93,"./aesCipherSuites":94,"./asn1":95,"./cipher":97,"./debug":99,"./des":100,"./ed25519":101,"./forge":102,"./hmac":103,"./kem":106,"./log":107,"./md.all":108,"./mgf1":112,"./pbkdf2":115,"./pem":116,"./pkcs1":117,"./pkcs12":118,"./pkcs7":119,"./pki":121,"./prime":122,"./prng":123,"./pss":124,"./random":125,"./rc2":126,"./ssh":131,"./task":132,"./tls":133,"./util":134}],105:[function(require,module,exports){
+},{"./aes":94,"./aesCipherSuites":95,"./asn1":96,"./cipher":98,"./debug":100,"./des":101,"./ed25519":102,"./forge":103,"./hmac":104,"./kem":107,"./log":108,"./md.all":109,"./mgf1":113,"./pbkdf2":116,"./pem":117,"./pkcs1":118,"./pkcs12":119,"./pkcs7":120,"./pki":122,"./prime":123,"./prng":124,"./pss":125,"./random":126,"./rc2":127,"./ssh":132,"./task":133,"./tls":134,"./util":135}],106:[function(require,module,exports){
 // Copyright (c) 2005  Tom Wu
 // All Rights Reserved.
 // See "LICENSE" for details.
@@ -23576,7 +24531,7 @@ BigInteger.prototype.isProbablePrime = bnIsProbablePrime;
 //long longValue()
 //static BigInteger valueOf(long val)
 
-},{"./forge":102}],106:[function(require,module,exports){
+},{"./forge":103}],107:[function(require,module,exports){
 /**
  * Javascript implementation of RSA-KEM.
  *
@@ -23746,7 +24701,7 @@ function _createKDF(kdf, md, counterStart, digestLength) {
   };
 }
 
-},{"./forge":102,"./jsbn":105,"./random":125,"./util":134}],107:[function(require,module,exports){
+},{"./forge":103,"./jsbn":106,"./random":126,"./util":135}],108:[function(require,module,exports){
 /**
  * Cross-browser support for logging in a web application.
  *
@@ -24065,7 +25020,7 @@ if(sConsoleLogger !== null) {
 // provide public access to console logger
 forge.log.consoleLogger = sConsoleLogger;
 
-},{"./forge":102,"./util":134}],108:[function(require,module,exports){
+},{"./forge":103,"./util":135}],109:[function(require,module,exports){
 /**
  * Node.js module for all known Forge message digests.
  *
@@ -24080,7 +25035,7 @@ require('./sha1');
 require('./sha256');
 require('./sha512');
 
-},{"./md":109,"./md5":110,"./sha1":128,"./sha256":129,"./sha512":130}],109:[function(require,module,exports){
+},{"./md":110,"./md5":111,"./sha1":129,"./sha256":130,"./sha512":131}],110:[function(require,module,exports){
 /**
  * Node.js module for Forge message digests.
  *
@@ -24093,7 +25048,7 @@ var forge = require('./forge');
 module.exports = forge.md = forge.md || {};
 forge.md.algorithms = forge.md.algorithms || {};
 
-},{"./forge":102}],110:[function(require,module,exports){
+},{"./forge":103}],111:[function(require,module,exports){
 /**
  * Message Digest Algorithm 5 with 128-bit digest (MD5) implementation.
  *
@@ -24384,7 +25339,7 @@ function _update(s, w, bytes) {
   }
 }
 
-},{"./forge":102,"./md":109,"./util":134}],111:[function(require,module,exports){
+},{"./forge":103,"./md":110,"./util":135}],112:[function(require,module,exports){
 /**
  * Node.js module for Forge mask generation functions.
  *
@@ -24398,7 +25353,7 @@ require('./mgf1');
 module.exports = forge.mgf = forge.mgf || {};
 forge.mgf.mgf1 = forge.mgf1;
 
-},{"./forge":102,"./mgf1":112}],112:[function(require,module,exports){
+},{"./forge":103,"./mgf1":113}],113:[function(require,module,exports){
 /**
  * Javascript implementation of mask generation function MGF1.
  *
@@ -24457,7 +25412,7 @@ mgf1.create = function(md) {
   return mgf;
 };
 
-},{"./forge":102,"./util":134}],113:[function(require,module,exports){
+},{"./forge":103,"./util":135}],114:[function(require,module,exports){
 /**
  * Object IDs for ASN.1.
  *
@@ -24622,7 +25577,7 @@ _IN('1.3.6.1.5.5.7.3.3', 'codeSigning');
 _IN('1.3.6.1.5.5.7.3.4', 'emailProtection');
 _IN('1.3.6.1.5.5.7.3.8', 'timeStamping');
 
-},{"./forge":102}],114:[function(require,module,exports){
+},{"./forge":103}],115:[function(require,module,exports){
 /**
  * Password-based encryption functions.
  *
@@ -25647,7 +26602,7 @@ function createPbkdf2Params(salt, countBytes, dkLen, prfAlgorithm) {
   return params;
 }
 
-},{"./aes":93,"./asn1":95,"./des":100,"./forge":102,"./md":109,"./oids":113,"./pbkdf2":115,"./pem":116,"./random":125,"./rc2":126,"./rsa":127,"./util":134}],115:[function(require,module,exports){
+},{"./aes":94,"./asn1":96,"./des":101,"./forge":103,"./md":110,"./oids":114,"./pbkdf2":116,"./pem":117,"./random":126,"./rc2":127,"./rsa":128,"./util":135}],116:[function(require,module,exports){
 (function (Buffer){
 /**
  * Password-Based Key-Derivation Function #2 implementation.
@@ -25862,7 +26817,7 @@ module.exports = forge.pbkdf2 = pkcs5.pbkdf2 = function(
 };
 
 }).call(this,require("buffer").Buffer)
-},{"./forge":102,"./hmac":103,"./md":109,"./util":134,"buffer":7,"crypto":7}],116:[function(require,module,exports){
+},{"./forge":103,"./hmac":104,"./md":110,"./util":135,"buffer":7,"crypto":7}],117:[function(require,module,exports){
 /**
  * Javascript implementation of basic PEM (Privacy Enhanced Mail) algorithms.
  *
@@ -26094,7 +27049,7 @@ function ltrim(str) {
   return str.replace(/^\s+/, '');
 }
 
-},{"./forge":102,"./util":134}],117:[function(require,module,exports){
+},{"./forge":103,"./util":135}],118:[function(require,module,exports){
 /**
  * Partial implementation of PKCS#1 v2.2: RSA-OEAP
  *
@@ -26372,7 +27327,7 @@ function rsa_mgf1(seed, maskLength, hash) {
   return t.substring(0, maskLength);
 }
 
-},{"./forge":102,"./random":125,"./sha1":128,"./util":134}],118:[function(require,module,exports){
+},{"./forge":103,"./random":126,"./sha1":129,"./util":135}],119:[function(require,module,exports){
 /**
  * Javascript implementation of PKCS#12.
  *
@@ -27448,7 +28403,7 @@ p12.toPkcs12Asn1 = function(key, cert, password, options) {
  */
 p12.generateKey = forge.pbe.generatePkcs12Key;
 
-},{"./asn1":95,"./forge":102,"./hmac":103,"./oids":113,"./pbe":114,"./pkcs7asn1":120,"./random":125,"./rsa":127,"./sha1":128,"./util":134,"./x509":135}],119:[function(require,module,exports){
+},{"./asn1":96,"./forge":103,"./hmac":104,"./oids":114,"./pbe":115,"./pkcs7asn1":121,"./random":126,"./rsa":128,"./sha1":129,"./util":135,"./x509":136}],120:[function(require,module,exports){
 /**
  * Javascript implementation of PKCS#7 v1.5.
  *
@@ -28707,7 +29662,7 @@ function _decryptContent(msg) {
   }
 }
 
-},{"./aes":93,"./asn1":95,"./des":100,"./forge":102,"./oids":113,"./pem":116,"./pkcs7asn1":120,"./random":125,"./util":134,"./x509":135}],120:[function(require,module,exports){
+},{"./aes":94,"./asn1":96,"./des":101,"./forge":103,"./oids":114,"./pem":117,"./pkcs7asn1":121,"./random":126,"./util":135,"./x509":136}],121:[function(require,module,exports){
 /**
  * Javascript implementation of ASN.1 validators for PKCS#7 v1.5.
  *
@@ -29118,7 +30073,7 @@ p7v.recipientInfoValidator = {
   }]
 };
 
-},{"./asn1":95,"./forge":102,"./util":134}],121:[function(require,module,exports){
+},{"./asn1":96,"./forge":103,"./util":135}],122:[function(require,module,exports){
 /**
  * Javascript implementation of a basic Public Key Infrastructure, including
  * support for RSA public and private keys.
@@ -29222,7 +30177,7 @@ pki.privateKeyInfoToPem = function(pki, maxline) {
   return forge.pem.encode(msg, {maxline: maxline});
 };
 
-},{"./asn1":95,"./forge":102,"./oids":113,"./pbe":114,"./pbkdf2":115,"./pem":116,"./pkcs12":118,"./pss":124,"./rsa":127,"./util":134,"./x509":135}],122:[function(require,module,exports){
+},{"./asn1":96,"./forge":103,"./oids":114,"./pbe":115,"./pbkdf2":116,"./pem":117,"./pkcs12":119,"./pss":125,"./rsa":128,"./util":135,"./x509":136}],123:[function(require,module,exports){
 /**
  * Prime number generation API.
  *
@@ -29521,7 +30476,7 @@ function getMillerRabinTests(bits) {
 
 })();
 
-},{"./forge":102,"./jsbn":105,"./random":125,"./util":134}],123:[function(require,module,exports){
+},{"./forge":103,"./jsbn":106,"./random":126,"./util":135}],124:[function(require,module,exports){
 (function (process){
 /**
  * A javascript implementation of a cryptographically-secure
@@ -29944,7 +30899,7 @@ prng.create = function(plugin) {
 };
 
 }).call(this,require('_process'))
-},{"./forge":102,"./util":134,"_process":30,"crypto":7}],124:[function(require,module,exports){
+},{"./forge":103,"./util":135,"_process":30,"crypto":7}],125:[function(require,module,exports){
 /**
  * Javascript implementation of PKCS#1 PSS signature padding.
  *
@@ -30187,7 +31142,7 @@ pss.create = function(options) {
   return pssobj;
 };
 
-},{"./forge":102,"./random":125,"./util":134}],125:[function(require,module,exports){
+},{"./forge":103,"./random":126,"./util":135}],126:[function(require,module,exports){
 /**
  * An API for getting cryptographically-secure random bytes. The bytes are
  * generated using the Fortuna algorithm devised by Bruce Schneier and
@@ -30380,7 +31335,7 @@ module.exports = forge.random;
 
 })();
 
-},{"./aes":93,"./forge":102,"./prng":123,"./sha256":129,"./util":134}],126:[function(require,module,exports){
+},{"./aes":94,"./forge":103,"./prng":124,"./sha256":130,"./util":135}],127:[function(require,module,exports){
 /**
  * RC2 implementation.
  *
@@ -30792,7 +31747,7 @@ forge.rc2.createDecryptionCipher = function(key, bits) {
   return createCipher(key, bits, false);
 };
 
-},{"./forge":102,"./util":134}],127:[function(require,module,exports){
+},{"./forge":103,"./util":135}],128:[function(require,module,exports){
 /**
  * Javascript implementation of basic RSA algorithms.
  *
@@ -32652,7 +33607,7 @@ function _base64ToBigInt(b64) {
   return new BigInteger(forge.util.bytesToHex(forge.util.decode64(b64)), 16);
 }
 
-},{"./asn1":95,"./forge":102,"./jsbn":105,"./oids":113,"./pkcs1":117,"./prime":122,"./random":125,"./util":134,"crypto":7}],128:[function(require,module,exports){
+},{"./asn1":96,"./forge":103,"./jsbn":106,"./oids":114,"./pkcs1":118,"./prime":123,"./random":126,"./util":135,"crypto":7}],129:[function(require,module,exports){
 /**
  * Secure Hash Algorithm with 160-bit digest (SHA-1) implementation.
  *
@@ -32973,7 +33928,7 @@ function _update(s, w, bytes) {
   }
 }
 
-},{"./forge":102,"./md":109,"./util":134}],129:[function(require,module,exports){
+},{"./forge":103,"./md":110,"./util":135}],130:[function(require,module,exports){
 /**
  * Secure Hash Algorithm with 256-bit digest (SHA-256) implementation.
  *
@@ -33302,7 +34257,7 @@ function _update(s, w, bytes) {
   }
 }
 
-},{"./forge":102,"./md":109,"./util":134}],130:[function(require,module,exports){
+},{"./forge":103,"./md":110,"./util":135}],131:[function(require,module,exports){
 /**
  * Secure Hash Algorithm with a 1024-bit block size implementation.
  *
@@ -33865,7 +34820,7 @@ function _update(s, w, bytes) {
   }
 }
 
-},{"./forge":102,"./md":109,"./util":134}],131:[function(require,module,exports){
+},{"./forge":103,"./md":110,"./util":135}],132:[function(require,module,exports){
 /**
  * Functions to output keys in SSH-friendly formats.
  *
@@ -34103,7 +35058,7 @@ function _sha1() {
   return sha.digest();
 }
 
-},{"./aes":93,"./forge":102,"./hmac":103,"./md5":110,"./sha1":128,"./util":134}],132:[function(require,module,exports){
+},{"./aes":94,"./forge":103,"./hmac":104,"./md5":111,"./sha1":129,"./util":135}],133:[function(require,module,exports){
 /**
  * Support for concurrent task management and synchronization in web
  * applications.
@@ -34830,7 +35785,7 @@ forge.task.createCondition = function() {
   return cond;
 };
 
-},{"./debug":99,"./forge":102,"./log":107,"./util":134}],133:[function(require,module,exports){
+},{"./debug":100,"./forge":103,"./log":108,"./util":135}],134:[function(require,module,exports){
 /**
  * A Javascript implementation of Transport Layer Security (TLS).
  *
@@ -39114,7 +40069,7 @@ forge.tls.createSessionCache = tls.createSessionCache;
  */
 forge.tls.createConnection = tls.createConnection;
 
-},{"./asn1":95,"./forge":102,"./hmac":103,"./md5":110,"./pem":116,"./pki":121,"./random":125,"./sha1":128,"./util":134}],134:[function(require,module,exports){
+},{"./asn1":96,"./forge":103,"./hmac":104,"./md5":111,"./pem":117,"./pki":122,"./random":126,"./sha1":129,"./util":135}],135:[function(require,module,exports){
 (function (process,global,Buffer,__argument0,__argument1,__argument2,__argument3,setImmediate){
 /**
  * Utility functions for web applications.
@@ -42111,7 +43066,7 @@ util.estimateCores = function(options, callback) {
 };
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer,arguments[3],arguments[4],arguments[5],arguments[6],require("timers").setImmediate)
-},{"./baseN":96,"./forge":102,"_process":30,"buffer":7,"timers":47}],135:[function(require,module,exports){
+},{"./baseN":97,"./forge":103,"_process":30,"buffer":7,"timers":47}],136:[function(require,module,exports){
 /**
  * Javascript implementation of X.509 and related components (such as
  * Certification Signing Requests) of a Public Key Infrastructure.
@@ -45446,331 +46401,12 @@ pki.verifyCertificateChain = function(caStore, chain, options) {
   return true;
 };
 
-},{"./aes":93,"./asn1":95,"./des":100,"./forge":102,"./md":109,"./mgf":111,"./oids":113,"./pem":116,"./pss":124,"./rsa":127,"./util":134}],136:[function(require,module,exports){
-(function (Buffer){
-// Generated by CoffeeScript 1.4.0
-
-/*
-# MIT LICENSE
-# Copyright (c) 2011 Devon Govett
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this
-# software and associated documentation files (the "Software"), to deal in the Software
-# without restriction, including without limitation the rights to use, copy, modify, merge,
-# publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
-# to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or
-# substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
-# BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-# DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
-
-
-(function() {
-  var PNG, fs, zlib;
-
-  fs = require('fs');
-
-  zlib = require('zlib');
-
-  module.exports = PNG = (function() {
-
-    PNG.decode = function(path, fn) {
-      return fs.readFile(path, function(err, file) {
-        var png;
-        png = new PNG(file);
-        return png.decode(function(pixels) {
-          return fn(pixels);
-        });
-      });
-    };
-
-    PNG.load = function(path) {
-      var file;
-      file = fs.readFileSync(path);
-      return new PNG(file);
-    };
-
-    function PNG(data) {
-      var chunkSize, colors, i, index, key, section, short, text, _i, _j, _ref;
-      this.data = data;
-      this.pos = 8;
-      this.palette = [];
-      this.imgData = [];
-      this.transparency = {};
-      this.text = {};
-      while (true) {
-        chunkSize = this.readUInt32();
-        section = ((function() {
-          var _i, _results;
-          _results = [];
-          for (i = _i = 0; _i < 4; i = ++_i) {
-            _results.push(String.fromCharCode(this.data[this.pos++]));
-          }
-          return _results;
-        }).call(this)).join('');
-        switch (section) {
-          case 'IHDR':
-            this.width = this.readUInt32();
-            this.height = this.readUInt32();
-            this.bits = this.data[this.pos++];
-            this.colorType = this.data[this.pos++];
-            this.compressionMethod = this.data[this.pos++];
-            this.filterMethod = this.data[this.pos++];
-            this.interlaceMethod = this.data[this.pos++];
-            break;
-          case 'PLTE':
-            this.palette = this.read(chunkSize);
-            break;
-          case 'IDAT':
-            for (i = _i = 0; _i < chunkSize; i = _i += 1) {
-              this.imgData.push(this.data[this.pos++]);
-            }
-            break;
-          case 'tRNS':
-            this.transparency = {};
-            switch (this.colorType) {
-              case 3:
-                this.transparency.indexed = this.read(chunkSize);
-                short = 255 - this.transparency.indexed.length;
-                if (short > 0) {
-                  for (i = _j = 0; 0 <= short ? _j < short : _j > short; i = 0 <= short ? ++_j : --_j) {
-                    this.transparency.indexed.push(255);
-                  }
-                }
-                break;
-              case 0:
-                this.transparency.grayscale = this.read(chunkSize)[0];
-                break;
-              case 2:
-                this.transparency.rgb = this.read(chunkSize);
-            }
-            break;
-          case 'tEXt':
-            text = this.read(chunkSize);
-            index = text.indexOf(0);
-            key = String.fromCharCode.apply(String, text.slice(0, index));
-            this.text[key] = String.fromCharCode.apply(String, text.slice(index + 1));
-            break;
-          case 'IEND':
-            this.colors = (function() {
-              switch (this.colorType) {
-                case 0:
-                case 3:
-                case 4:
-                  return 1;
-                case 2:
-                case 6:
-                  return 3;
-              }
-            }).call(this);
-            this.hasAlphaChannel = (_ref = this.colorType) === 4 || _ref === 6;
-            colors = this.colors + (this.hasAlphaChannel ? 1 : 0);
-            this.pixelBitlength = this.bits * colors;
-            this.colorSpace = (function() {
-              switch (this.colors) {
-                case 1:
-                  return 'DeviceGray';
-                case 3:
-                  return 'DeviceRGB';
-              }
-            }).call(this);
-            this.imgData = new Buffer(this.imgData);
-            return;
-          default:
-            this.pos += chunkSize;
-        }
-        this.pos += 4;
-        if (this.pos > this.data.length) {
-          throw new Error("Incomplete or corrupt PNG file");
-        }
-      }
-      return;
-    }
-
-    PNG.prototype.read = function(bytes) {
-      var i, _i, _results;
-      _results = [];
-      for (i = _i = 0; 0 <= bytes ? _i < bytes : _i > bytes; i = 0 <= bytes ? ++_i : --_i) {
-        _results.push(this.data[this.pos++]);
-      }
-      return _results;
-    };
-
-    PNG.prototype.readUInt32 = function() {
-      var b1, b2, b3, b4;
-      b1 = this.data[this.pos++] << 24;
-      b2 = this.data[this.pos++] << 16;
-      b3 = this.data[this.pos++] << 8;
-      b4 = this.data[this.pos++];
-      return b1 | b2 | b3 | b4;
-    };
-
-    PNG.prototype.readUInt16 = function() {
-      var b1, b2;
-      b1 = this.data[this.pos++] << 8;
-      b2 = this.data[this.pos++];
-      return b1 | b2;
-    };
-
-    PNG.prototype.decodePixels = function(fn) {
-      var _this = this;
-      return zlib.inflate(this.imgData, function(err, data) {
-        var byte, c, col, i, left, length, p, pa, paeth, pb, pc, pixelBytes, pixels, pos, row, scanlineLength, upper, upperLeft, _i, _j, _k, _l, _m;
-        if (err) {
-          throw err;
-        }
-        pixelBytes = _this.pixelBitlength / 8;
-        scanlineLength = pixelBytes * _this.width;
-        pixels = new Buffer(scanlineLength * _this.height);
-        length = data.length;
-        row = 0;
-        pos = 0;
-        c = 0;
-        while (pos < length) {
-          switch (data[pos++]) {
-            case 0:
-              for (i = _i = 0; _i < scanlineLength; i = _i += 1) {
-                pixels[c++] = data[pos++];
-              }
-              break;
-            case 1:
-              for (i = _j = 0; _j < scanlineLength; i = _j += 1) {
-                byte = data[pos++];
-                left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
-                pixels[c++] = (byte + left) % 256;
-              }
-              break;
-            case 2:
-              for (i = _k = 0; _k < scanlineLength; i = _k += 1) {
-                byte = data[pos++];
-                col = (i - (i % pixelBytes)) / pixelBytes;
-                upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)];
-                pixels[c++] = (upper + byte) % 256;
-              }
-              break;
-            case 3:
-              for (i = _l = 0; _l < scanlineLength; i = _l += 1) {
-                byte = data[pos++];
-                col = (i - (i % pixelBytes)) / pixelBytes;
-                left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
-                upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)];
-                pixels[c++] = (byte + Math.floor((left + upper) / 2)) % 256;
-              }
-              break;
-            case 4:
-              for (i = _m = 0; _m < scanlineLength; i = _m += 1) {
-                byte = data[pos++];
-                col = (i - (i % pixelBytes)) / pixelBytes;
-                left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
-                if (row === 0) {
-                  upper = upperLeft = 0;
-                } else {
-                  upper = pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)];
-                  upperLeft = col && pixels[(row - 1) * scanlineLength + (col - 1) * pixelBytes + (i % pixelBytes)];
-                }
-                p = left + upper - upperLeft;
-                pa = Math.abs(p - left);
-                pb = Math.abs(p - upper);
-                pc = Math.abs(p - upperLeft);
-                if (pa <= pb && pa <= pc) {
-                  paeth = left;
-                } else if (pb <= pc) {
-                  paeth = upper;
-                } else {
-                  paeth = upperLeft;
-                }
-                pixels[c++] = (byte + paeth) % 256;
-              }
-              break;
-            default:
-              throw new Error("Invalid filter algorithm: " + data[pos - 1]);
-          }
-          row++;
-        }
-        return fn(pixels);
-      });
-    };
-
-    PNG.prototype.decodePalette = function() {
-      var c, i, length, palette, pos, ret, transparency, _i, _ref, _ref1;
-      palette = this.palette;
-      transparency = this.transparency.indexed || [];
-      ret = new Buffer(transparency.length + palette.length);
-      pos = 0;
-      length = palette.length;
-      c = 0;
-      for (i = _i = 0, _ref = palette.length; _i < _ref; i = _i += 3) {
-        ret[pos++] = palette[i];
-        ret[pos++] = palette[i + 1];
-        ret[pos++] = palette[i + 2];
-        ret[pos++] = (_ref1 = transparency[c++]) != null ? _ref1 : 255;
-      }
-      return ret;
-    };
-
-    PNG.prototype.copyToImageData = function(imageData, pixels) {
-      var alpha, colors, data, i, input, j, k, length, palette, v, _ref;
-      colors = this.colors;
-      palette = null;
-      alpha = this.hasAlphaChannel;
-      if (this.palette.length) {
-        palette = (_ref = this._decodedPalette) != null ? _ref : this._decodedPalette = this.decodePalette();
-        colors = 4;
-        alpha = true;
-      }
-      data = (imageData != null ? imageData.data : void 0) || imageData;
-      length = data.length;
-      input = palette || pixels;
-      i = j = 0;
-      if (colors === 1) {
-        while (i < length) {
-          k = palette ? pixels[i / 4] * 4 : j;
-          v = input[k++];
-          data[i++] = v;
-          data[i++] = v;
-          data[i++] = v;
-          data[i++] = alpha ? input[k++] : 255;
-          j = k;
-        }
-      } else {
-        while (i < length) {
-          k = palette ? pixels[i / 4] * 4 : j;
-          data[i++] = input[k++];
-          data[i++] = input[k++];
-          data[i++] = input[k++];
-          data[i++] = alpha ? input[k++] : 255;
-          j = k;
-        }
-      }
-    };
-
-    PNG.prototype.decode = function(fn) {
-      var ret,
-        _this = this;
-      ret = new Buffer(this.width * this.height * 4);
-      return this.decodePixels(function(pixels) {
-        _this.copyToImageData(ret, pixels);
-        return fn(ret);
-      });
-    };
-
-    return PNG;
-
-  })();
-
-}).call(this);
-
-}).call(this,require("buffer").Buffer)
-},{"buffer":10,"fs":1,"zlib":9}],137:[function(require,module,exports){
+},{"./aes":94,"./asn1":96,"./des":101,"./forge":103,"./md":110,"./mgf":112,"./oids":114,"./pem":117,"./pss":125,"./rsa":128,"./util":135}],137:[function(require,module,exports){
 (function (Buffer){
 var signer = require('pdf-signer')
-//const helpers = require('node-signpdf/dist/helpers')
+const helpers = require('node-signpdf/dist/helpers')
+
+
 
 
 window.signPDF = async function(pdfArrayBuffer,certArrayBuffer,imageArrayBuffer, width){
@@ -45909,4 +46545,410 @@ return dd+'/'+mm+'/'+yyyy
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":10,"node-signpdf/dist/helpers":55,"pdf-signer":90}]},{},[137]);
+},{"buffer":10,"node-signpdf/dist/helpers":55,"pdf-signer":91}],138:[function(require,module,exports){
+(function (Buffer){
+/*
+ * MIT LICENSE
+ * Copyright (c) 2011 Devon Govett
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this
+ * software and associated documentation files (the "Software"), to deal in the Software
+ * without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
+ * to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or
+ * substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+ * BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+const fs = require('fs');
+const zlib = require('zlib');
+
+module.exports = class PNG {
+  static decode(path, fn) {
+    return fs.readFile(path, function(err, file) {
+      const png = new PNG(file);
+      return png.decode(pixels => fn(pixels));
+    });
+  }
+
+  static load(path) {
+    const file = fs.readFileSync(path);
+    return new PNG(file);
+  }
+
+  constructor(data) {
+    let i;
+    this.data = data;
+    this.pos = 8; // Skip the default header
+
+    this.palette = [];
+    this.imgData = [];
+    this.transparency = {};
+    this.text = {};
+
+    while (true) {
+      const chunkSize = this.readUInt32();
+      let section = '';
+      for (i = 0; i < 4; i++) {
+        section += String.fromCharCode(this.data[this.pos++]);
+      }
+
+      switch (section) {
+        case 'IHDR':
+          // we can grab  interesting values from here (like width, height, etc)
+          this.width = this.readUInt32();
+          this.height = this.readUInt32();
+          this.bits = this.data[this.pos++];
+          this.colorType = this.data[this.pos++];
+          this.compressionMethod = this.data[this.pos++];
+          this.filterMethod = this.data[this.pos++];
+          this.interlaceMethod = this.data[this.pos++];
+          break;
+
+        case 'PLTE':
+          this.palette = this.read(chunkSize);
+          break;
+
+        case 'IDAT':
+          for (i = 0; i < chunkSize; i++) {
+            this.imgData.push(this.data[this.pos++]);
+          }
+          break;
+
+        case 'tRNS':
+          // This chunk can only occur once and it must occur after the
+          // PLTE chunk and before the IDAT chunk.
+          this.transparency = {};
+          switch (this.colorType) {
+            case 3:
+              // Indexed color, RGB. Each byte in this chunk is an alpha for
+              // the palette index in the PLTE ("palette") chunk up until the
+              // last non-opaque entry. Set up an array, stretching over all
+              // palette entries which will be 0 (opaque) or 1 (transparent).
+              this.transparency.indexed = this.read(chunkSize);
+              var short = 255 - this.transparency.indexed.length;
+              if (short > 0) {
+                for (i = 0; i < short; i++) {
+                  this.transparency.indexed.push(255);
+                }
+              }
+              break;
+            case 0:
+              // Greyscale. Corresponding to entries in the PLTE chunk.
+              // Grey is two bytes, range 0 .. (2 ^ bit-depth) - 1
+              this.transparency.grayscale = this.read(chunkSize)[0];
+              break;
+            case 2:
+              // True color with proper alpha channel.
+              this.transparency.rgb = this.read(chunkSize);
+              break;
+          }
+          break;
+
+        case 'tEXt':
+          var text = this.read(chunkSize);
+          var index = text.indexOf(0);
+          var key = String.fromCharCode.apply(String, text.slice(0, index));
+          this.text[key] = String.fromCharCode.apply(
+            String,
+            text.slice(index + 1)
+          );
+          break;
+
+        case 'IEND':
+          // we've got everything we need!
+          switch (this.colorType) {
+            case 0:
+            case 3:
+            case 4:
+              this.colors = 1;
+              break;
+            case 2:
+            case 6:
+              this.colors = 3;
+              break;
+          }
+
+          this.hasAlphaChannel = [4, 6].includes(this.colorType);
+          var colors = this.colors + (this.hasAlphaChannel ? 1 : 0);
+          this.pixelBitlength = this.bits * colors;
+
+          switch (this.colors) {
+            case 1:
+              this.colorSpace = 'DeviceGray';
+              break;
+            case 3:
+              this.colorSpace = 'DeviceRGB';
+              break;
+          }
+
+          this.imgData = new Buffer(this.imgData);
+          return;
+          break;
+
+        default:
+          // unknown (or unimportant) section, skip it
+          this.pos += chunkSize;
+      }
+
+      this.pos += 4; // Skip the CRC
+
+      if (this.pos > this.data.length) {
+        throw new Error('Incomplete or corrupt PNG file');
+      }
+    }
+  }
+
+  read(bytes) {
+    const result = new Array(bytes);
+    for (let i = 0; i < bytes; i++) {
+      result[i] = this.data[this.pos++];
+    }
+    return result;
+  }
+
+  readUInt32() {
+    const b1 = this.data[this.pos++] << 24;
+    const b2 = this.data[this.pos++] << 16;
+    const b3 = this.data[this.pos++] << 8;
+    const b4 = this.data[this.pos++];
+    return b1 | b2 | b3 | b4;
+  }
+
+  readUInt16() {
+    const b1 = this.data[this.pos++] << 8;
+    const b2 = this.data[this.pos++];
+    return b1 | b2;
+  }
+
+  decodePixels(fn) {
+    return zlib.inflate(this.imgData, (err, data) => {
+      if (err) {
+        throw err;
+      }
+
+      const { width, height } = this;
+      const pixelBytes = this.pixelBitlength / 8;
+
+      const pixels = new Buffer(width * height * pixelBytes);
+      const { length } = data;
+      let pos = 0;
+
+      function pass(x0, y0, dx, dy, singlePass = false) {
+        const w = Math.ceil((width - x0) / dx);
+        const h = Math.ceil((height - y0) / dy);
+        const scanlineLength = pixelBytes * w;
+        const buffer = singlePass ? pixels : new Buffer(scanlineLength * h);
+        let row = 0;
+        let c = 0;
+        while (row < h && pos < length) {
+          var byte, col, i, left, upper;
+          switch (data[pos++]) {
+            case 0: // None
+              for (i = 0; i < scanlineLength; i++) {
+                buffer[c++] = data[pos++];
+              }
+              break;
+
+            case 1: // Sub
+              for (i = 0; i < scanlineLength; i++) {
+                byte = data[pos++];
+                left = i < pixelBytes ? 0 : buffer[c - pixelBytes];
+                buffer[c++] = (byte + left) % 256;
+              }
+              break;
+
+            case 2: // Up
+              for (i = 0; i < scanlineLength; i++) {
+                byte = data[pos++];
+                col = (i - (i % pixelBytes)) / pixelBytes;
+                upper =
+                  row &&
+                  buffer[
+                    (row - 1) * scanlineLength +
+                      col * pixelBytes +
+                      (i % pixelBytes)
+                  ];
+                buffer[c++] = (upper + byte) % 256;
+              }
+              break;
+
+            case 3: // Average
+              for (i = 0; i < scanlineLength; i++) {
+                byte = data[pos++];
+                col = (i - (i % pixelBytes)) / pixelBytes;
+                left = i < pixelBytes ? 0 : buffer[c - pixelBytes];
+                upper =
+                  row &&
+                  buffer[
+                    (row - 1) * scanlineLength +
+                      col * pixelBytes +
+                      (i % pixelBytes)
+                  ];
+                buffer[c++] = (byte + Math.floor((left + upper) / 2)) % 256;
+              }
+              break;
+
+            case 4: // Paeth
+              for (i = 0; i < scanlineLength; i++) {
+                var paeth, upperLeft;
+                byte = data[pos++];
+                col = (i - (i % pixelBytes)) / pixelBytes;
+                left = i < pixelBytes ? 0 : buffer[c - pixelBytes];
+
+                if (row === 0) {
+                  upper = upperLeft = 0;
+                } else {
+                  upper =
+                    buffer[
+                      (row - 1) * scanlineLength +
+                        col * pixelBytes +
+                        (i % pixelBytes)
+                    ];
+                  upperLeft =
+                    col &&
+                    buffer[
+                      (row - 1) * scanlineLength +
+                        (col - 1) * pixelBytes +
+                        (i % pixelBytes)
+                    ];
+                }
+
+                const p = left + upper - upperLeft;
+                const pa = Math.abs(p - left);
+                const pb = Math.abs(p - upper);
+                const pc = Math.abs(p - upperLeft);
+
+                if (pa <= pb && pa <= pc) {
+                  paeth = left;
+                } else if (pb <= pc) {
+                  paeth = upper;
+                } else {
+                  paeth = upperLeft;
+                }
+
+                buffer[c++] = (byte + paeth) % 256;
+              }
+              break;
+
+            default:
+              throw new Error(`Invalid filter algorithm: ${data[pos - 1]}`);
+          }
+
+          if (!singlePass) {
+            let pixelsPos = ((y0 + row * dy) * width + x0) * pixelBytes;
+            let bufferPos = row * scanlineLength;
+            for (i = 0; i < w; i++) {
+              for (let j = 0; j < pixelBytes; j++)
+                pixels[pixelsPos++] = buffer[bufferPos++];
+              pixelsPos += (dx - 1) * pixelBytes;
+            }
+          }
+
+          row++;
+        }
+      }
+
+      if (this.interlaceMethod === 1) {
+        /*
+          1 6 4 6 2 6 4 6
+          7 7 7 7 7 7 7 7
+          5 6 5 6 5 6 5 6
+          7 7 7 7 7 7 7 7
+          3 6 4 6 3 6 4 6
+          7 7 7 7 7 7 7 7
+          5 6 5 6 5 6 5 6
+          7 7 7 7 7 7 7 7
+        */
+        pass(0, 0, 8, 8); // 1
+        pass(4, 0, 8, 8); // 2
+        pass(0, 4, 4, 8); // 3
+        pass(2, 0, 4, 4); // 4
+        pass(0, 2, 2, 4); // 5
+        pass(1, 0, 2, 2); // 6
+        pass(0, 1, 1, 2); // 7
+      } else {
+        pass(0, 0, 1, 1, true);
+      }
+
+      return fn(pixels);
+    });
+  }
+
+  decodePalette() {
+    const { palette } = this;
+    const { length } = palette;
+    const transparency = this.transparency.indexed || [];
+    const ret = new Buffer(transparency.length + length);
+    let pos = 0;
+    let c = 0;
+
+    for (let i = 0; i < length; i += 3) {
+      var left;
+      ret[pos++] = palette[i];
+      ret[pos++] = palette[i + 1];
+      ret[pos++] = palette[i + 2];
+      ret[pos++] = (left = transparency[c++]) != null ? left : 255;
+    }
+
+    return ret;
+  }
+
+  copyToImageData(imageData, pixels) {
+    let j, k;
+    let { colors } = this;
+    let palette = null;
+    let alpha = this.hasAlphaChannel;
+
+    if (this.palette.length) {
+      palette =
+        this._decodedPalette || (this._decodedPalette = this.decodePalette());
+      colors = 4;
+      alpha = true;
+    }
+
+    const data = imageData.data || imageData;
+    const { length } = data;
+    const input = palette || pixels;
+    let i = (j = 0);
+
+    if (colors === 1) {
+      while (i < length) {
+        k = palette ? pixels[i / 4] * 4 : j;
+        const v = input[k++];
+        data[i++] = v;
+        data[i++] = v;
+        data[i++] = v;
+        data[i++] = alpha ? input[k++] : 255;
+        j = k;
+      }
+    } else {
+      while (i < length) {
+        k = palette ? pixels[i / 4] * 4 : j;
+        data[i++] = input[k++];
+        data[i++] = input[k++];
+        data[i++] = input[k++];
+        data[i++] = alpha ? input[k++] : 255;
+        j = k;
+      }
+    }
+  }
+
+  decode(fn) {
+    const ret = new Buffer(this.width * this.height * 4);
+    return this.decodePixels(pixels => {
+      this.copyToImageData(ret, pixels);
+      return fn(ret);
+    });
+  }
+};
+
+}).call(this,require("buffer").Buffer)
+},{"buffer":10,"fs":1,"zlib":9}]},{},[137]);
